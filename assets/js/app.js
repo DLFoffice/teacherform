@@ -42,7 +42,7 @@ function since(ts) {
 /* ---------- API (GAS web app) ---------- */
 const CFG = window.APP_CONFIG || {};
 const MODE = !CFG.API_URL ? 'demo' : (CFG.GOOGLE_CLIENT_ID ? 'google' : 'lite');
-const AUTH = { token: '', email: '', name: '', exp: 0 };
+const AUTH = { token: '', email: '', name: '', picture: '', exp: 0 };
 
 async function api(action, ...args) {
   if (MODE === 'demo') return DemoAPI.call(action, args);
@@ -76,14 +76,17 @@ const DemoAPI = (() => {
   const now = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' '); };
   const id = p => p + Date.now().toString().slice(-9) + Math.floor(Math.random() * 900 + 100);
   const F = {
-    getInit: () => ({ email: AUTH.email, name: AUTH.name, isAdmin: true, originSchool: 'โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์', periodsPerWeek: 8, schools: ['โรงเรียนบ้านหนองหญ้าปล้อง'], subjects: ['ภาษาไทย', 'คณิตศาสตร์', 'วิทยาศาสตร์', 'ภาษาอังกฤษ', 'สังคมศึกษา'], affiliations: ['สพป.ประจวบคีรีขันธ์ เขต 1', 'สพป.ประจวบคีรีขันธ์ เขต 2', 'กองบัญชาการตำรวจตระเวนชายแดน (ตชด.)', 'องค์กรปกครองส่วนท้องถิ่น (อปท.)'] }),
+    getInit: () => ({ email: AUTH.email, name: AUTH.name, picture: AUTH.picture || '', profile: (load().profiles || {})[AUTH.email] || { teacher: AUTH.name }, isAdmin: true, originSchool: 'โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์', periodsPerWeek: 8, schools: ['โรงเรียนบ้านหนองหญ้าปล้อง'], subjects: ['ภาษาไทย', 'คณิตศาสตร์', 'วิทยาศาสตร์', 'ภาษาอังกฤษ', 'สังคมศึกษา'], affiliations: ['สพป.ประจวบคีรีขันธ์ เขต 1', 'สพป.ประจวบคีรีขันธ์ เขต 2', 'กองบัญชาการตำรวจตระเวนชายแดน (ตชด.)', 'องค์กรปกครองส่วนท้องถิ่น (อปท.)'] }),
     savePlan: p => {
       const db = load(); p = JSON.parse(JSON.stringify(p));
       p.items = (p.items || []).filter(i => i.date || i.detail || i.subject);
       const old = p.id && db.plans[p.id];
       p.id = old ? p.id : id('PL'); p.created = old ? old.created : now(); p.updated = now(); p.email = AUTH.email;
       p.periods = p.items.filter(i => i.type === 'เข้าสอน').length;
-      db.plans[p.id] = p; save(db); return { id: p.id, periods: p.periods };
+      db.plans[p.id] = p; db.profiles = db.profiles || {};
+      const pf = db.profiles[AUTH.email] = db.profiles[AUTH.email] || {};
+      ['teacher', 'originSubject', 'destSubject', 'destSchool', 'affiliation', 'district', 'province'].forEach(k => { if (p[k]) pf[k] = p[k]; });
+      save(db); return { id: p.id, periods: p.periods };
     },
     getPlan: i => { const p = load().plans[i]; if (!p) throw new Error('ไม่พบแผนปฏิบัติงาน'); return p; },
     saveProposal: p => {
@@ -115,10 +118,10 @@ function decodeJwt(t) {
 }
 function setAuth(a) {
   Object.assign(AUTH, a);
-  try { sessionStorage.setItem('dltv_auth', JSON.stringify(AUTH)); } catch (e) { }
+  try { localStorage.setItem('dltv_auth', JSON.stringify(AUTH)); } catch (e) { }   // จำการเข้าสู่ระบบไว้ในเครื่อง
 }
 function restoreAuth() {
-  try { const a = JSON.parse(sessionStorage.getItem('dltv_auth')); if (a) Object.assign(AUTH, a); } catch (e) { }
+  try { const a = JSON.parse(localStorage.getItem('dltv_auth')); if (a) Object.assign(AUTH, a); } catch (e) { }
   if (MODE !== 'google') { const l = store.get('lite'); if (l && !AUTH.email) Object.assign(AUTH, l); }
   if (MODE === 'google') return !!AUTH.token && AUTH.exp * 1000 > Date.now() + 60000;
   return !!AUTH.email;
@@ -131,7 +134,9 @@ function initGoogle() {
     client_id: CFG.GOOGLE_CLIENT_ID,
     callback: r => {
       const p = decodeJwt(r.credential);
-      setAuth({ token: r.credential, email: p.email || '', name: p.name || '', exp: p.exp || 0 });
+      const prev = AUTH.email;
+      setAuth({ token: r.credential, email: p.email || '', name: p.name || '', picture: p.picture || '', exp: p.exp || 0 });
+      if (started && prev && prev !== AUTH.email) started = false;   // เปลี่ยนบัญชี
       hideLogin(); startApp();
     },
     auto_select: true,
@@ -157,8 +162,9 @@ function showLogin(msg) {
 function hideLogin() { $('#login').classList.remove('on'); }
 function logout() {
   const email = AUTH.email;
-  Object.assign(AUTH, { token: '', email: '', name: '', exp: 0 });
-  try { sessionStorage.removeItem('dltv_auth'); } catch (e) { }
+  Object.assign(AUTH, { token: '', email: '', name: '', picture: '', exp: 0 });
+  S.ready = false; S.init = null; S.records = [];
+  try { localStorage.removeItem('dltv_auth'); } catch (e) { }
   store.del('lite');
   if (MODE === 'google' && window.google && google.accounts) { google.accounts.id.disableAutoSelect(); if (email) google.accounts.id.revoke(email, () => { }); }
   started = false;
@@ -375,7 +381,6 @@ function refreshPlan() {
   $('#planCount').textContent = n;
   $('#planRing').style.setProperty('--v', Math.min(100, n / t * 100));
   $('#planRing').classList.toggle('full', n >= t);
-  store.set('planDraft', collectPlan());
 }
 function collectPlan() {
   const p = { id: S.planId, items: readPlanItems() };
@@ -392,9 +397,18 @@ function fillPlan(p) {
   $('#planSaveInfo').textContent = p.updated ? 'บันทึกล่าสุด ' + since(p.updated) : 'ยังไม่ได้บันทึก';
   refreshPlan();
 }
+function draftPlan() { if (S.ready) store.set(dk('planDraft'), collectPlan()); }
+function draftProp() { if (S.ready) store.set(dk('propDraft'), collectProp()); }
+function dk(k) { return k + '_' + (AUTH.email || 'anon'); }
+function profile() { return (S.init && S.init.profile) || {}; }
+function rememberLocal(p) {
+  if (!S.init) return;
+  const pf = S.init.profile = S.init.profile || {};
+  ['teacher', 'originSubject', 'destSubject', 'destSchool', 'affiliation', 'district', 'province'].forEach(k => { if (p[k]) pf[k] = p[k]; });
+}
 function newPlan() {
-  const last = store.get('profile') || {};
-  fillPlan({ teacher: last.teacher, originSubject: last.originSubject, destSubject: last.destSubject, destSchool: last.destSchool, affiliation: last.affiliation, district: last.district, province: last.province });
+  const last = profile();
+  fillPlan({ teacher: last.teacher || AUTH.name, originSubject: last.originSubject, destSubject: last.destSubject, destSchool: last.destSchool, affiliation: last.affiliation, district: last.district, province: last.province });
 }
 function sortPlan() {
   const items = readPlanItems().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
@@ -411,7 +425,7 @@ async function savePlan() {
     S.planId = r.id;
     $('#planIdBadge').textContent = 'รหัส ' + r.id;
     $('#planSaveInfo').textContent = 'บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' · ' + r.periods + ' คาบสอน';
-    store.set('profile', p); store.del('planDraft');
+    store.del(dk('planDraft')); rememberLocal(p);
     toast('บันทึกแผนปฏิบัติงานเรียบร้อย');
     loadRecords();
   } catch (e) { toast(errMsg(e), 'bad'); }
@@ -445,7 +459,6 @@ function refreshProp() {
     $('.sub', el).textContent = [o.mode, o.grade, o.date ? thDate(o.date, 1) : '', o.minute ? 'นาทีที่ ' + o.minute : ''].filter(Boolean).join(' · ');
   });
   $('#propCount').textContent = list.length + ' รายการ';
-  store.set('propDraft', collectProp());
 }
 function collectProp() {
   const p = { id: S.propId, items: readPropItems() };
@@ -463,8 +476,8 @@ function fillProp(p) {
   refreshProp();
 }
 function newProp() {
-  const last = store.get('profile') || {};
-  fillProp({ teacher: last.teacher, destSchool: last.destSchool, affiliation: last.affiliation, destSubject: (last.destSubject || '').split(/[\s(]/)[0] });
+  const last = profile();
+  fillProp({ teacher: last.teacher || AUTH.name, destSchool: last.destSchool, affiliation: last.affiliation, destSubject: (last.destSubject || '').split(/[\s(]/)[0] });
 }
 function fillPlanSelect(sel) {
   const s = $('#pr-planId'); const cur = sel != null ? sel : s.value;
@@ -509,7 +522,7 @@ async function saveProp() {
     S.propId = r.id;
     $('#propIdBadge').textContent = 'รหัส ' + r.id;
     $('#propSaveInfo').textContent = 'บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' · ' + r.count + ' ประเด็น';
-    store.del('propDraft');
+    store.del(dk('propDraft')); rememberLocal({ teacher: p.teacher, destSchool: p.destSchool, affiliation: p.affiliation });
     toast('บันทึกข้อเสนอเรียบร้อย');
     loadRecords();
   } catch (e) { toast(errMsg(e), 'bad'); }
@@ -692,8 +705,9 @@ function printProp(p) {
  *  Init
  * ========================================================= */
 function wire() {
-  wireList($('#planItems'), refreshPlan, o => addPlanItem(o));
-  wireList($('#propItems'), refreshProp, o => addPropItem(o));
+  wireList($('#planItems'), () => { refreshPlan(); draftPlan(); }, o => addPlanItem(o));
+  wireList($('#propItems'), () => { refreshProp(); draftProp(); }, o => addPropItem(o));
+  ['input', 'change'].forEach(ev => { $('#pg-plan').addEventListener(ev, draftPlan); $('#pg-proposal').addEventListener(ev, draftProp); });
   $('#pg-plan').addEventListener('input', e => { if (e.target.id && e.target.id.startsWith('pl-')) { e.target.classList.remove('err'); refreshPlan(); } });
   $('#pg-proposal').addEventListener('input', e => { if (e.target.id && e.target.id.startsWith('pr-')) { e.target.classList.remove('err'); refreshProp(); } });
   $('#btnAddPlanItem').onclick = () => addPlanItem(null, true);
@@ -703,8 +717,8 @@ function wire() {
   $('#btnSaveProp').onclick = saveProp;
   $('#btnPrintPlan').onclick = () => printPlan(collectPlan());
   $('#btnPrintProp').onclick = () => printProp(collectProp());
-  $('#btnNewPlan').onclick = async () => { if (await confirmBox('เริ่มแผนใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del('planDraft'); newPlan(); } };
-  $('#btnNewProp').onclick = async () => { if (await confirmBox('เริ่มข้อเสนอใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del('propDraft'); newProp(); } };
+  $('#btnNewPlan').onclick = async () => { if (await confirmBox('เริ่มแผนใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del(dk('planDraft')); newPlan(); } };
+  $('#btnNewProp').onclick = async () => { if (await confirmBox('เริ่มข้อเสนอใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del(dk('propDraft')); newProp(); } };
   $('#pr-planId').onchange = onPlanPick;
   $('#btnImportPeriods').onclick = importPeriods;
   $('#btnReload').onclick = loadRecords;
@@ -716,38 +730,56 @@ function wire() {
   });
 }
 let started = false;
+function initials(n) { return (n || '?').replace(/^(คุณ|นางสาว|นาง|นาย|น\.ส\.|ครู|ดร\.)\s*/, '').trim().charAt(0) || '?'; }
+function renderUser() {
+  const name = (S.init && S.init.profile && S.init.profile.teacher) || AUTH.name || AUTH.email;
+  $('#userName').textContent = name;
+  $('#userEmail').textContent = AUTH.email;
+  const av = $('#userAvatar');
+  av.innerHTML = AUTH.picture ? '<img src="' + esc(AUTH.picture) + '" referrerpolicy="no-referrer" alt="">' : esc(initials(name));
+  $('#heroName').textContent = name ? 'คุณ' + name.replace(/^(คุณ|นางสาว|นาง|นาย|น\.ส\.)\s*/, '') : 'คุณครูต้นทาง';
+  const ll = S.init && S.init.lastLogin;
+  $('#heroLast').textContent = ll ? 'เข้าใช้ครั้งก่อน ' + since(ll) + ' · เข้าใช้ทั้งหมด ' + S.init.loginCount + ' ครั้ง' : (S.init ? 'ยินดีต้อนรับสู่ระบบครั้งแรก' : '');
+  $('#heroLast').classList.toggle('hide', !$('#heroLast').textContent);
+}
 async function startApp() {
   if (started) return; started = true;
-  $('#userEmail').textContent = AUTH.name ? AUTH.name + ' · ' + AUTH.email : AUTH.email;
+  S.ready = false;
   $('#demoChip').classList.toggle('hide', MODE !== 'demo');
+  renderUser();
   go('home');
+  loading(true);
   try {
-    S.init = await api('getInit');
+    S.init = await api('getInit', { ua: navigator.userAgent });
+    if (S.init.picture && !AUTH.picture) setAuth({ picture: S.init.picture });
     $('#userRole').innerHTML = S.init.isAdmin ? '<span class="chip admin" style="margin-top:8px"><span class="ms" style="font-size:16px">shield_person</span>ผู้ดูแลระบบ</span>' : '';
     $('#dlSchools').innerHTML = S.init.schools.map(s => '<option value="' + esc(s) + '">').join('');
     $('#dlSubjects').innerHTML = S.init.subjects.map(s => '<option value="' + esc(s) + '">').join('');
     $('#dlAffiliations').innerHTML = (S.init.affiliations || []).map(s => '<option value="' + esc(s) + '">').join('');
     $('#planOriginLbl').textContent = S.init.originSchool;
-    if (!$('#pl-originSchool').value) $('#pl-originSchool').value = S.init.originSchool;
-    if (!$('#pl-teacher').value && AUTH.name) $('#pl-teacher').value = AUTH.name;
-    if (!$('#pr-teacher').value && AUTH.name) $('#pr-teacher').value = AUTH.name;
-    refreshPlan(); refreshProp();
   } catch (e) { toast(errMsg(e), 'bad'); }
+  finally { loading(false); }
+  // เติมฟอร์ม: แบบร่างของบัญชีนี้ (ถ้ามี) หรือข้อมูลตั้งต้นจากครั้งก่อน
+  const pd = store.get(dk('planDraft')), rd = store.get(dk('propDraft'));
+  pd ? fillPlan(pd) : newPlan();
+  rd ? fillProp(rd) : newProp();
+  if (pd) $('#planSaveInfo').textContent = 'กู้คืนแบบร่างที่ยังไม่บันทึก';
+  if (rd) $('#propSaveInfo').textContent = 'กู้คืนแบบร่างที่ยังไม่บันทึก';
+  S.ready = true;
+  renderUser();
 }
 function boot() {
   wire();
-  const pd = store.get('planDraft'), rd = store.get('propDraft');
-  pd ? fillPlan(pd) : newPlan();
-  rd ? fillProp(rd) : newProp();
-  if (pd && pd.teacher) $('#planSaveInfo').textContent = 'กู้คืนแบบร่างที่ยังไม่บันทึก';
-  if (rd && rd.teacher) $('#propSaveInfo').textContent = 'กู้คืนแบบร่างที่ยังไม่บันทึก';
-  $('#btnLogout').onclick = $('#btnLogout2').onclick = async () => { if (await confirmBox('ออกจากระบบ?', 'แบบร่างที่ยังไม่บันทึกจะยังเก็บไว้ในเบราว์เซอร์นี้', 'ออกจากระบบ')) logout(); };
+  ['planDraft', 'propDraft', 'profile'].forEach(k => store.del(k));   // ล้างแบบร่างรุ่นเก่าที่ไม่แยกบัญชี
+  $('#btnLogout').onclick = $('#btnLogout2').onclick = async () => { if (await confirmBox('ออกจากระบบ?', 'แบบร่างที่ยังไม่บันทึกจะเก็บไว้ในเบราว์เซอร์นี้ เมื่อเข้าสู่ระบบครั้งหน้าจะกู้คืนให้', 'ออกจากระบบ')) logout(); };
   $('#loginLite').onsubmit = e => {
     e.preventDefault();
     const a = { name: $('#lgName').value.trim(), email: $('#lgEmail').value.trim().toLowerCase() };
     setAuth(a); store.set('lite', a); hideLogin(); startApp();
   };
   $('#btnDemo').onclick = () => { setAuth({ name: 'ผู้ใช้ทดลอง', email: 'demo@dltv.local' }); hideLogin(); startApp(); };
-  if (restoreAuth()) startApp(); else showLogin();
+  if (restoreAuth()) startApp();
+  else if (MODE === 'google' && AUTH.email) { showLogin(); }      // token หมดอายุ: One Tap จะเข้าสู่ระบบให้อัตโนมัติ
+  else showLogin();
 }
 boot();

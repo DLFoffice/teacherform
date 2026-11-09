@@ -33,7 +33,10 @@
       <button data-go="guide"><span class="ms">menu_book</span>คำชี้แจง / รูปแบบงาน</button>
     </nav>
     <div class="foot">
-      ผู้ใช้งาน<b id="userEmail">—</b>
+      <div class="me">
+        <div class="avatar" id="userAvatar">?</div>
+        <div style="min-width:0"><b id="userName">—</b><small id="userEmail"></small></div>
+      </div>
       <span id="userRole"></span>
       <button class="btn lite sm" id="btnLogout" style="margin-top:10px;width:100%"><span class="ms">logout</span>ออกจากระบบ</button>
     </div>
@@ -62,7 +65,8 @@
       <section class="page" id="pg-home">
         <div class="hero">
           <div class="txt">
-            <h2>สวัสดีครับ คุณครูต้นทาง 👋</h2>
+            <h2>สวัสดีครับ <span id="heroName">คุณครูต้นทาง</span> 👋</h2>
+            <div class="hero-last hide" id="heroLast"></div>
             <p>บันทึกแผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์ ณ โรงเรียนปลายทาง และเสนอการปรับปรุง “เนื้อหา/วิธีการสอน” ของเทปแต่ละเทป ได้ในที่เดียว</p>
             <div class="cta">
               <button class="btn gold" data-go="plan"><span class="ms">add_circle</span>สร้างแผนปฏิบัติงาน</button>
