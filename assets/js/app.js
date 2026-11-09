@@ -3,7 +3,7 @@
  * ========================================================= */
 const $ = (s, el) => (el || document).querySelector(s);
 const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
-const S = { init: null, records: [], kind: '', planId: '', propId: '', propStatus: '' };
+const S = { init: null, records: [], kind: '', planId: '', propId: '' };
 const TITLES = { home: 'ภาพรวม', plan: 'แผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์', proposal: 'ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”', records: 'รายการที่บันทึก', guide: 'คำชี้แจง / รูปแบบงาน' };
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const TH_D = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
@@ -76,7 +76,7 @@ const DemoAPI = (() => {
   const now = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' '); };
   const id = p => p + Date.now().toString().slice(-9) + Math.floor(Math.random() * 900 + 100);
   const F = {
-    getInit: () => ({ email: AUTH.email, name: AUTH.name, isAdmin: true, originSchool: 'โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์', periodsPerWeek: 8, schools: ['โรงเรียนบ้านหนองหญ้าปล้อง'], subjects: ['ภาษาไทย', 'คณิตศาสตร์', 'วิทยาศาสตร์', 'ภาษาอังกฤษ', 'สังคมศึกษา'] }),
+    getInit: () => ({ email: AUTH.email, name: AUTH.name, isAdmin: true, originSchool: 'โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์', periodsPerWeek: 8, schools: ['โรงเรียนบ้านหนองหญ้าปล้อง'], subjects: ['ภาษาไทย', 'คณิตศาสตร์', 'วิทยาศาสตร์', 'ภาษาอังกฤษ', 'สังคมศึกษา'], affiliations: ['สพป.ประจวบคีรีขันธ์ เขต 1', 'สพป.ประจวบคีรีขันธ์ เขต 2', 'กองบัญชาการตำรวจตระเวนชายแดน (ตชด.)', 'องค์กรปกครองส่วนท้องถิ่น (อปท.)'] }),
     savePlan: p => {
       const db = load(); p = JSON.parse(JSON.stringify(p));
       p.items = (p.items || []).filter(i => i.date || i.detail || i.subject);
@@ -91,19 +91,16 @@ const DemoAPI = (() => {
       p.items = (p.items || []).filter(i => i.problem || i.before || i.after || i.topic);
       const old = p.id && db.props[p.id];
       p.id = old ? p.id : id('PR'); p.created = old ? old.created : now(); p.updated = now(); p.email = AUTH.email;
-      p.status = old && old.status !== 'ส่งกลับแก้ไข' ? old.status : 'รอพิจารณา';
-      if (old) { p.comment = old.comment; p.reviewer = old.reviewer; p.reviewedAt = old.reviewedAt; }
       db.props[p.id] = p; save(db); return { id: p.id, count: p.items.length };
     },
     getProposal: i => { const p = load().props[i]; if (!p) throw new Error('ไม่พบข้อเสนอ'); return p; },
-    reviewProposal: (i, st, cm) => { const db = load(); Object.assign(db.props[i], { status: st, comment: cm, reviewer: AUTH.email, reviewedAt: now() }); save(db); return true; },
     deleteRecord: (k, i) => { const db = load(); delete db[k === 'plan' ? 'plans' : 'props'][i]; save(db); return true; },
     listRecords: () => {
       const db = load();
-      const plans = Object.values(db.plans).map(p => ({ kind: 'plan', id: p.id, created: p.created, updated: p.updated, email: p.email, teacher: p.teacher, school: p.destSchool, subject: p.destSubject, startDate: p.startDate, endDate: p.endDate, periods: p.periods }));
-      const props = Object.values(db.props).map(p => ({ kind: 'proposal', id: p.id, created: p.created, updated: p.updated, email: p.email, teacher: p.teacher, school: p.destSchool, subject: p.destSubject, planId: p.planId, count: p.items.length, status: p.status }));
+      const plans = Object.values(db.plans).map(p => ({ kind: 'plan', id: p.id, created: p.created, updated: p.updated, email: p.email, teacher: p.teacher, school: p.destSchool, affiliation: p.affiliation, subject: p.destSubject, startDate: p.startDate, endDate: p.endDate, periods: p.periods }));
+      const props = Object.values(db.props).map(p => ({ kind: 'proposal', id: p.id, created: p.created, updated: p.updated, email: p.email, teacher: p.teacher, school: p.destSchool, affiliation: p.affiliation, subject: p.destSubject, planId: p.planId, count: p.items.length }));
       const all = plans.concat(props).sort((a, b) => a.updated < b.updated ? 1 : -1);
-      return { records: all, isAdmin: true, stat: { plans: plans.length, proposals: props.length, items: props.reduce((s, x) => s + x.count, 0), periods: plans.reduce((s, x) => s + x.periods, 0), approved: props.filter(x => x.status === 'อนุมัติ').length } };
+      return { records: all, isAdmin: true, stat: { plans: plans.length, proposals: props.length, items: props.reduce((s, x) => s + x.count, 0), periods: plans.reduce((s, x) => s + x.periods, 0), schools: new Set(all.map(x => x.school).filter(Boolean)).size } };
     }
   };
   return { call: (a, args) => new Promise((res, rej) => setTimeout(() => { try { res(F[a](...args)); } catch (e) { rej(e); } }, 120)) };
@@ -342,7 +339,7 @@ document.addEventListener('keydown', e => { if (e.target.classList && e.target.c
 /* =========================================================
  *  แผนปฏิบัติงาน
  * ========================================================= */
-const PLAN_F = ['teacher', 'originSchool', 'originSubject', 'destSubject', 'startDate', 'endDate', 'destSchool', 'district', 'province', 'note'];
+const PLAN_F = ['teacher', 'originSchool', 'originSubject', 'destSubject', 'startDate', 'endDate', 'destSchool', 'affiliation', 'district', 'province', 'note'];
 const TASK2PAT = { 'สอนเปิดเทปสังเกตนักเรียน': '1', 'สอนเปิดเทปสังเกตการกำกับห้องเรียน': '2', 'สอนจริง': '3' };
 
 function addPlanItem(o, focus) {
@@ -397,7 +394,7 @@ function fillPlan(p) {
 }
 function newPlan() {
   const last = store.get('profile') || {};
-  fillPlan({ teacher: last.teacher, originSubject: last.originSubject, destSubject: last.destSubject, destSchool: last.destSchool, district: last.district, province: last.province });
+  fillPlan({ teacher: last.teacher, originSubject: last.originSubject, destSubject: last.destSubject, destSchool: last.destSchool, affiliation: last.affiliation, district: last.district, province: last.province });
 }
 function sortPlan() {
   const items = readPlanItems().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
@@ -429,7 +426,7 @@ async function openPlan(id) {
 /* =========================================================
  *  ข้อเสนอการปรับปรุง
  * ========================================================= */
-const PROP_F = ['teacher', 'destSchool', 'destSubject', 'planId'];
+const PROP_F = ['teacher', 'destSchool', 'affiliation', 'destSubject', 'planId'];
 function addPropItem(o, focus) {
   const el = $('#tplPropItem').content.firstElementChild.cloneNode(true);
   writeItem(el, Object.assign({ mode: 'เปิดเทป' }, o || {}));
@@ -456,27 +453,18 @@ function collectProp() {
   return p;
 }
 function fillProp(p) {
-  S.propId = p.id || ''; S.propStatus = p.status || '';
+  S.propId = p.id || '';
   fillPlanSelect(p.planId);
   PROP_F.forEach(k => { if (k !== 'planId') $('#pr-' + k).value = p[k] || ''; });
   $('#propItems').innerHTML = '';
   (p.items && p.items.length ? p.items : [null]).forEach(it => addPropItem(it));
-  $('#propIdBadge').textContent = S.propId ? (p.status || 'รอพิจารณา') + ' · ' + S.propId : 'ข้อเสนอใหม่';
+  $('#propIdBadge').textContent = S.propId ? 'รหัส ' + S.propId : 'ข้อเสนอใหม่';
   $('#propSaveInfo').textContent = p.updated ? 'บันทึกล่าสุด ' + since(p.updated) : 'ยังไม่ได้บันทึก';
-  const showReview = S.propId && (S.init && S.init.isAdmin || (p.status && p.status !== 'รอพิจารณา'));
-  $('#reviewCard').classList.toggle('hide', !showReview);
-  if (showReview) {
-    $('#rv-status').value = p.status || 'รอพิจารณา';
-    $('#rv-comment').value = p.comment || '';
-    $('#reviewMeta').textContent = p.reviewer ? 'โดย ' + p.reviewer + ' · ' + since(p.reviewedAt) : 'ยังไม่มีการพิจารณา';
-    const ro = !(S.init && S.init.isAdmin);
-    $('#rv-status').disabled = ro; $('#rv-comment').readOnly = ro; $('#btnReview').classList.toggle('hide', ro);
-  }
   refreshProp();
 }
 function newProp() {
   const last = store.get('profile') || {};
-  fillProp({ teacher: last.teacher, destSchool: last.destSchool, destSubject: (last.destSubject || '').split(/[\s(]/)[0] });
+  fillProp({ teacher: last.teacher, destSchool: last.destSchool, affiliation: last.affiliation, destSubject: (last.destSubject || '').split(/[\s(]/)[0] });
 }
 function fillPlanSelect(sel) {
   const s = $('#pr-planId'); const cur = sel != null ? sel : s.value;
@@ -491,6 +479,7 @@ async function onPlanPick() {
   const r = S.records.find(x => x.id === id); if (!r) return;
   if (!$('#pr-teacher').value) $('#pr-teacher').value = r.teacher;
   if (!$('#pr-destSchool').value) $('#pr-destSchool').value = r.school;
+  if (!$('#pr-affiliation').value && r.affiliation) $('#pr-affiliation').value = r.affiliation;
   if (!$('#pr-destSubject').value) $('#pr-destSubject').value = (r.subject || '').split(/[\s(]/)[0];
   refreshProp();
 }
@@ -518,7 +507,7 @@ async function saveProp() {
   try {
     const r = await api('saveProposal', p);
     S.propId = r.id;
-    $('#propIdBadge').textContent = (S.propStatus === 'ส่งกลับแก้ไข' || !S.propStatus ? 'รอพิจารณา' : S.propStatus) + ' · ' + r.id;
+    $('#propIdBadge').textContent = 'รหัส ' + r.id;
     $('#propSaveInfo').textContent = 'บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' · ' + r.count + ' ประเด็น';
     store.del('propDraft');
     toast('บันทึกข้อเสนอเรียบร้อย');
@@ -531,22 +520,9 @@ async function openProp(id) {
   try { fillProp(await api('getProposal', id)); go('proposal'); }
   catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
 }
-async function saveReview() {
-  if (!S.propId) return;
-  loading(true);
-  try {
-    await api('reviewProposal', S.propId, $('#rv-status').value, $('#rv-comment').value);
-    S.propStatus = $('#rv-status').value;
-    $('#propIdBadge').textContent = S.propStatus + ' · ' + S.propId;
-    $('#reviewMeta').textContent = 'โดย ' + (S.init.email || '') + ' · เมื่อสักครู่';
-    toast('บันทึกผลการพิจารณาแล้ว');
-  } catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
-}
-
 /* =========================================================
  *  รายการ / ภาพรวม
  * ========================================================= */
-const ST_CLS = { 'รอพิจารณา': 's-wait', 'อนุมัติ': 's-ok', 'ไม่อนุมัติ': 's-no', 'ส่งกลับแก้ไข': 's-back' };
 let loadingRecs = false;
 async function loadRecords() {
   if (loadingRecs) return; loadingRecs = true;
@@ -556,7 +532,7 @@ async function loadRecords() {
     $('#st-plans').textContent = r.stat.plans;
     $('#st-periods').textContent = r.stat.periods;
     $('#st-items').textContent = r.stat.items;
-    $('#st-approved').textContent = r.stat.approved;
+    $('#st-schools').textContent = r.stat.schools;
     renderRecent(); renderRecords(); fillPlanSelect();
   } catch (e) { toast(errMsg(e), 'bad'); $('#recentList').innerHTML = '<div class="empty">' + esc(errMsg(e)) + '</div>'; }
   finally { loadingRecs = false; }
@@ -567,8 +543,8 @@ function recDetail(r) {
     : '<b>' + r.count + '</b> ประเด็นข้อเสนอ';
 }
 function recStatus(r) {
-  if (r.kind === 'plan') return '<span class="badge ' + (r.periods >= 8 ? 's-ok' : 's-wait') + '">' + (r.periods >= 8 ? 'ครบ 8 คาบ' : 'ยังไม่ครบ') + '</span>';
-  return '<span class="badge ' + (ST_CLS[r.status] || 's-wait') + '">' + esc(r.status || 'รอพิจารณา') + '</span>';
+  if (r.kind === 'plan') return '<span class="badge ' + (r.periods >= 8 ? 's-ok' : 's-wait') + '">' + (r.periods >= 8 ? 'ครบ 8 คาบ' : 'ยังไม่ครบ ' + r.periods + '/8') + '</span>';
+  return '<span class="badge ' + (r.count ? 's-ok' : 's-wait') + '">' + (r.count ? 'มีข้อเสนอแล้ว' : 'ยังไม่มีประเด็น') + '</span>';
 }
 function renderRecent() {
   const list = S.records.slice(0, 6);
@@ -582,13 +558,13 @@ function renderRecent() {
 function renderRecords() {
   const q = $('#q').value.trim().toLowerCase();
   const list = S.records.filter(r => (!S.kind || r.kind === S.kind) &&
-    (!q || [r.teacher, r.school, r.subject, r.id, r.email].join(' ').toLowerCase().includes(q)));
+    (!q || [r.teacher, r.school, r.affiliation, r.subject, r.id, r.email].join(' ').toLowerCase().includes(q)));
   $('#recEmpty').classList.toggle('hide', list.length > 0);
   $('#recBody').innerHTML = list.map(r =>
     '<tr>' +
     '<td data-l="ประเภท"><span class="badge ' + (r.kind === 'plan' ? 'plan' : 'prop') + '">' + (r.kind === 'plan' ? 'แผนปฏิบัติงาน' : 'ข้อเสนอ') + '</span></td>' +
     '<td data-l="ครู" class="who"><b>' + esc(r.teacher) + '</b><small>' + esc(r.email || '') + '</small></td>' +
-    '<td data-l="โรงเรียน/วิชา" class="who"><b>' + esc(r.school || '-') + '</b><small>' + esc(r.subject || '') + '</small></td>' +
+    '<td data-l="โรงเรียน/วิชา" class="who"><b>' + esc(r.school || '-') + '</b><small>' + esc([r.affiliation, r.subject].filter(Boolean).join(' · ')) + '</small></td>' +
     '<td data-l="รายละเอียด">' + recDetail(r) + '</td>' +
     '<td data-l="สถานะ">' + recStatus(r) + '</td>' +
     '<td data-l="แก้ไขล่าสุด" style="color:var(--muted);white-space:nowrap">' + esc(since(r.updated)) + '</td>' +
@@ -676,7 +652,7 @@ function printPlan(p) {
   const place = [p.destSchool, p.district ? 'อ.' + p.district : '', p.province ? 'จ.' + p.province : ''].filter(Boolean).join(' ');
   const html = '<div class="rp">' + rpHead('แผนปฏิบัติงานรายบุคคล ' + target + ' คาบ/สัปดาห์', 'ครูต้นทาง') +
     rpInfo([['ชื่อครู', p.teacher], ['โรงเรียนต้นทาง', p.originSchool, 'w2'], ['ห้วงเวลาปฏิบัติงาน', thRangeDates(p.startDate, p.endDate)],
-      ['วิชาที่สอน ณ ร.ร.ต้นทาง', p.originSubject], ['วิชาที่สอน ณ ร.ร.ปลายทาง', p.destSubject], ['โรงเรียนปลายทาง', place, 'w2']]) +
+      ['วิชาที่สอน ณ ร.ร.ต้นทาง', p.originSubject], ['วิชาที่สอน ณ ร.ร.ปลายทาง', p.destSubject], ['โรงเรียนปลายทาง', place, 'w2'], ['สังกัด', p.affiliation, 'w4']]) +
     '<div class="rp-sum"><div class="n"><b>' + teach.length + ' / ' + target + '</b><small>คาบสอน ณ โรงเรียนปลายทาง</small></div>' +
     '<div class="p1"><b>' + cnt('1') + '</b><small>รูปแบบที่ 1</small></div><div class="p2"><b>' + cnt('2') + '</b><small>รูปแบบที่ 2</small></div>' +
     '<div class="p3"><b>' + cnt('3') + '</b><small>รูปแบบที่ 3</small></div><div class="o"><b>' + order.filter(Boolean).length + '</b><small>วันปฏิบัติงาน</small></div></div>' +
@@ -703,14 +679,12 @@ function printProp(p) {
       '<div class="n"><div class="lb">ปรับใหม่ให้เป็นอย่างไร</div>' + (i.after ? nl(i.after) : '—') + '</div></div>' +
       (i.remark ? '<div class="full" style="font-size:12px;color:#5b6385"><b>หมายเหตุ:</b> ' + nl(i.remark) + '</div>' : '') + '</div></div>';
   }).join('');
-  const st = p.status || '';
-  const rv = st && st !== 'รอพิจารณา' ? '<div class="rp-review ' + (st === 'อนุมัติ' ? 'ok' : st === 'ไม่อนุมัติ' ? 'no' : 'w') + '"><b>ผลการพิจารณา: ' + esc(st) + '</b>' + (p.comment ? ' — ' + nl(p.comment) : '') + '</div>' : '';
   const html = '<div class="rp">' + rpHead('ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”', 'การบ้านเพิ่มเติม · รายบุคคล') +
-    rpInfo([['ครูผู้สอน', p.teacher], ['โรงเรียนปลายทาง', p.destSchool], ['วิชาที่สอน ณ โรงเรียนปลายทาง', p.destSubject]]) +
-    '<div class="rp-guide"><span>ปรับตรงไหนของเทป?</span><em>→</em><span class="r">เดิมเป็นอย่างไร?</span><em>→</em><span class="n">ปรับใหม่ให้เป็นอย่างไร?</span><i>*** หากอนุมัติแล้วสามารถปฏิบัติได้เลย ***</i></div>' +
-    rv + '<div class="rp-sec"><h3>ประเด็นข้อเสนอ (' + items.length + ')</h3></div>' +
+    rpInfo([['ครูผู้สอน', p.teacher], ['วิชาที่สอน ณ โรงเรียนปลายทาง', p.destSubject], ['โรงเรียนปลายทาง', p.destSchool, 'w2'], ['สังกัด', p.affiliation, 'w4']]) +
+    '<div class="rp-guide"><span>ปรับตรงไหนของเทป?</span><em>→</em><span class="r">เดิมเป็นอย่างไร?</span><em>→</em><span class="n">ปรับใหม่ให้เป็นอย่างไร?</span><i>*** ข้อเสนอที่นำไปปฏิบัติได้จริง ***</i></div>' +
+    '<div class="rp-sec"><h3>ประเด็นข้อเสนอ (' + items.length + ')</h3></div>' +
     (cards || '<div class="rp-empty">ยังไม่มีประเด็นข้อเสนอ</div>') +
-    rpSign([p.teacher, 'ครูผู้เสนอ'], 'ผู้พิจารณา') + rpFoot(p.id) + '</div>';
+    '<div class="rp-sign one"><div><div class="ln"></div>(' + esc(p.teacher || '..................................................') + ')<br><small>ครูผู้เสนอ</small></div></div>' + rpFoot(p.id) + '</div>';
   doPrint(html);
 }
 
@@ -728,12 +702,11 @@ function wire() {
   $('#btnSavePlan').onclick = savePlan;
   $('#btnSaveProp').onclick = saveProp;
   $('#btnPrintPlan').onclick = () => printPlan(collectPlan());
-  $('#btnPrintProp').onclick = () => printProp(Object.assign(collectProp(), { status: S.propStatus, comment: $('#rv-comment').value }));
+  $('#btnPrintProp').onclick = () => printProp(collectProp());
   $('#btnNewPlan').onclick = async () => { if (await confirmBox('เริ่มแผนใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del('planDraft'); newPlan(); } };
   $('#btnNewProp').onclick = async () => { if (await confirmBox('เริ่มข้อเสนอใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del('propDraft'); newProp(); } };
   $('#pr-planId').onchange = onPlanPick;
   $('#btnImportPeriods').onclick = importPeriods;
-  $('#btnReview').onclick = saveReview;
   $('#btnReload').onclick = loadRecords;
   $('#q').oninput = renderRecords;
   $('#kindSeg').addEventListener('click', e => {
@@ -753,6 +726,7 @@ async function startApp() {
     $('#userRole').innerHTML = S.init.isAdmin ? '<span class="chip admin" style="margin-top:8px"><span class="ms" style="font-size:16px">shield_person</span>ผู้ดูแลระบบ</span>' : '';
     $('#dlSchools').innerHTML = S.init.schools.map(s => '<option value="' + esc(s) + '">').join('');
     $('#dlSubjects').innerHTML = S.init.subjects.map(s => '<option value="' + esc(s) + '">').join('');
+    $('#dlAffiliations').innerHTML = (S.init.affiliations || []).map(s => '<option value="' + esc(s) + '">').join('');
     $('#planOriginLbl').textContent = S.init.originSchool;
     if (!$('#pl-originSchool').value) $('#pl-originSchool').value = S.init.originSchool;
     if (!$('#pl-teacher').value && AUTH.name) $('#pl-teacher').value = AUTH.name;

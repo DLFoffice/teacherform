@@ -80,15 +80,15 @@
           <div class="card stat a"><div class="ic"><span class="ms fill">event_note</span></div><div class="v" id="st-plans">–</div><div class="k">แผนปฏิบัติงาน</div></div>
           <div class="card stat b"><div class="ic"><span class="ms fill">school</span></div><div class="v" id="st-periods">–</div><div class="k">คาบสอน ณ โรงเรียนปลายทาง</div></div>
           <div class="card stat c"><div class="ic"><span class="ms fill">tips_and_updates</span></div><div class="v" id="st-items">–</div><div class="k">ประเด็นข้อเสนอปรับปรุง</div></div>
-          <div class="card stat d"><div class="ic"><span class="ms fill">verified</span></div><div class="v" id="st-approved">–</div><div class="k">ข้อเสนอที่อนุมัติแล้ว</div></div>
+          <div class="card stat d"><div class="ic"><span class="ms fill">domain</span></div><div class="v" id="st-schools">–</div><div class="k">โรงเรียนปลายทาง</div></div>
         </div>
 
         <div class="grid g2" style="margin-top:18px">
-          <div class="card">
+          <div class="card band c-navy">
             <div class="card-h"><div class="ic"><span class="ms">history</span></div><div><h3>บันทึกล่าสุด</h3><p>รายการที่แก้ไขล่าสุด 6 รายการ</p></div><div class="sp"></div><button class="btn ghost sm" data-go="records">ดูทั้งหมด</button></div>
             <div id="recentList"><div class="skel" style="margin:10px 0"></div><div class="skel" style="width:70%"></div></div>
           </div>
-          <div class="card">
+          <div class="card band c-purple">
             <div class="card-h"><div class="ic"><span class="ms">category</span></div><div><h3>รูปแบบงานที่ครูต้นทางปฏิบัติ ณ โรงเรียนปลายทาง</h3></div></div>
             <div class="legend">
               <div class="lg"><div class="dot" style="background:var(--p1)">1</div><div><b>รูปแบบที่ 1</b><span>เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนของตนผ่านเทปออกอากาศหรือไม่</span></div></div>
@@ -101,37 +101,54 @@
 
       <!-- ========== PLAN ========== -->
       <section class="page" id="pg-plan">
-        <div class="card">
+        <div class="card band c-navy">
           <div class="card-h">
             <div class="ic"><span class="ms">badge</span></div>
-            <div><h3>แผนการปฏิบัติงาน ครูต้นทาง (รายบุคคล)</h3><p id="planOriginLbl">โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์</p></div>
+            <div><h3>1 · ข้อมูลครูต้นทาง</h3><p id="planOriginLbl">โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์</p></div>
             <div class="sp"></div>
             <span class="badge plan" id="planIdBadge">แผนใหม่</span>
           </div>
           <div class="fg">
-            <div class="f s6"><label>ชื่อครู <span class="req">*</span></label><input class="in" id="pl-teacher" placeholder="เช่น นางสาวคณิตา หนุนอนันต์"></div>
-            <div class="f s6"><label>โรงเรียนต้นทาง</label><input class="in" id="pl-originSchool"></div>
-            <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนต้นทาง</label><input class="in" id="pl-originSubject" placeholder="เช่น ภาษาไทย ป.5" list="dlSubjects"></div>
-            <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pl-destSubject" placeholder="เช่น ภาษาไทย (ป.5-6 ชั้นละ 4/5 คาบ/สัปดาห์)"></div>
-            <div class="f s3 half"><label>ห้วงเวลาปฏิบัติงาน: เริ่ม</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-startDate"></div>
-            <div class="f s3 half"><label>ถึง</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-endDate"></div>
-            <div class="f s6"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pl-destSchool" placeholder="เช่น โรงเรียนบ้านหนองหญ้าปล้อง" list="dlSchools"></div>
-            <div class="f s6"><label>อำเภอ</label><input class="in" id="pl-district" placeholder="เช่น บางสะพาน"></div>
-            <div class="f s6"><label>จังหวัด</label><input class="in" id="pl-province" placeholder="เช่น ประจวบคีรีขันธ์"></div>
+            <div class="f s4"><label>ชื่อครู <span class="req">*</span></label><input class="in" id="pl-teacher" placeholder="เช่น นางสาวคณิตา หนุนอนันต์"></div>
+            <div class="f s4"><label>โรงเรียนต้นทาง</label><input class="in" id="pl-originSchool"></div>
+            <div class="f s4"><label>วิชาที่สอน ณ โรงเรียนต้นทาง</label><input class="in" id="pl-originSubject" placeholder="เช่น ภาษาไทย ป.5" list="dlSubjects"></div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card band c-gold">
+          <div class="card-h">
+            <div class="ic"><span class="ms">school</span></div>
+            <div><h3>2 · โรงเรียนปลายทางและห้วงเวลาปฏิบัติงาน</h3><p>โรงเรียนที่ไปปฏิบัติงาน สังกัด และช่วงวันที่</p></div>
+          </div>
+          <div class="fg">
+            <div class="f s6"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pl-destSchool" placeholder="เช่น โรงเรียนบ้านหนองหญ้าปล้อง" list="dlSchools"></div>
+            <div class="f s6"><label>สังกัด</label><input class="in" id="pl-affiliation" placeholder="เช่น สพป.ประจวบคีรีขันธ์ เขต 2" list="dlAffiliations"></div>
+            <div class="f s3 half"><label>อำเภอ</label><input class="in" id="pl-district" placeholder="เช่น บางสะพาน"></div>
+            <div class="f s3 half"><label>จังหวัด</label><input class="in" id="pl-province" placeholder="เช่น ประจวบคีรีขันธ์"></div>
+            <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pl-destSubject" placeholder="เช่น ภาษาไทย (ป.5-6 ชั้นละ 4/5 คาบ/สัปดาห์)"></div>
+            <div class="f s3 half"><label>ปฏิบัติงานตั้งแต่วันที่</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-startDate"></div>
+            <div class="f s3 half"><label>ถึงวันที่</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-endDate"></div>
+          </div>
+        </div>
+
+        <div class="card band c-green">
           <div class="card-h">
             <div class="ic"><span class="ms">calendar_month</span></div>
-            <div><h3>ตารางปฏิบัติงานรายวัน</h3><p>ระบุวัน เวลา คาบที่ และรูปแบบงานให้ครบ 8 คาบ/สัปดาห์</p></div>
+            <div><h3>3 · ตารางปฏิบัติงานรายวัน</h3><p>ระบุวัน เวลา คาบที่ และรูปแบบงานให้ครบ 8 คาบ/สัปดาห์</p></div>
             <div class="sp"></div>
             <button class="btn ghost sm" id="btnSortPlan" title="เรียงตามวันและเวลา"><span class="ms">sort</span>เรียงตามเวลา</button>
             <div class="ring" id="planRing"><div><span><b id="planCount">0</b><small>/8 คาบ</small></span></div></div>
           </div>
           <div class="items" id="planItems"></div>
           <button class="btn dash" id="btnAddPlanItem"><span class="ms">add</span>เพิ่มรายการปฏิบัติงาน</button>
-          <div class="f s12" style="margin-top:16px"><label>หมายเหตุเพิ่มเติม</label><textarea class="in" id="pl-note" placeholder="(ถ้ามี)"></textarea></div>
+        </div>
+
+        <div class="card band c-slate">
+          <div class="card-h">
+            <div class="ic"><span class="ms">sticky_note_2</span></div>
+            <div><h3>4 · หมายเหตุเพิ่มเติม</h3><p>(ถ้ามี)</p></div>
+          </div>
+          <textarea class="in" id="pl-note" placeholder="เช่น ข้อมูลการเดินทาง ผู้ประสานงาน ฯลฯ"></textarea>
         </div>
 
         <div class="sticky-actions">
@@ -148,14 +165,14 @@
           <span class="ms">lightbulb</span>
           <div>
             <h4>ผลที่ต้องการ: ข้อเสนอการปรับปรุง “เนื้อหา/วิธีสอน” ในวิชาที่ตนเองรับผิดชอบ (รายบุคคล)</h4>
-            <p>“ปรับตรงไหน? ของเทปแต่ละเทป” — “เดิมเป็น<span class="q">อย่างไร</span>? ปรับใหม่ให้เป็น<span class="q">อย่างไร</span>?”<br><b style="color:#2f5fc2">*** เป็นข้อเสนอที่หากอนุมัติแล้วสามารถปฏิบัติได้เลย ***</b></p>
+            <p>“ปรับตรงไหน? ของเทปแต่ละเทป” — “เดิมเป็น<span class="q">อย่างไร</span>? ปรับใหม่ให้เป็น<span class="q">อย่างไร</span>?”<br><b style="color:#2f5fc2">*** เป็นข้อเสนอที่นำไปปฏิบัติได้จริง ***</b></p>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card band c-navy">
           <div class="card-h">
             <div class="ic"><span class="ms">person_edit</span></div>
-            <div><h3>ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน” ของครูต้นทาง</h3><p>การบ้านเพิ่มเติม : รายบุคคล</p></div>
+            <div><h3>1 · ข้อมูลครูและโรงเรียนปลายทาง</h3><p>ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน” · การบ้านเพิ่มเติม : รายบุคคล</p></div>
             <div class="sp"></div>
             <span class="badge prop" id="propIdBadge">ข้อเสนอใหม่</span>
           </div>
@@ -166,31 +183,22 @@
                 <button class="btn ghost" id="btnImportPeriods"><span class="ms">download</span>ดึงคาบสอนจากแผน</button>
               </div>
             </div>
-            <div class="f"><label>ชื่อครูผู้สอน <span class="req">*</span></label><input class="in" id="pr-teacher"></div>
-            <div class="f"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pr-destSchool" list="dlSchools"></div>
-            <div class="f"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pr-destSubject" list="dlSubjects"></div>
+            <div class="f s6"><label>ชื่อครูผู้สอน <span class="req">*</span></label><input class="in" id="pr-teacher"></div>
+            <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pr-destSubject" list="dlSubjects"></div>
+            <div class="f s6"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pr-destSchool" list="dlSchools"></div>
+            <div class="f s6"><label>สังกัด</label><input class="in" id="pr-affiliation" placeholder="เช่น สพป.ประจวบคีรีขันธ์ เขต 2" list="dlAffiliations"></div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card band c-gold">
           <div class="card-h">
             <div class="ic"><span class="ms">video_library</span></div>
-            <div><h3>รายการปัญหาและข้อเสนอ (รายเทป)</h3><p>ระบุว่าปรับตรงไหน เดิมเป็นอย่างไร และปรับใหม่ให้เป็นอย่างไร</p></div>
+            <div><h3>2 · ประเด็นปัญหาและข้อเสนอ (รายเทป)</h3><p>ปรับตรงไหน · เดิมเป็นอย่างไร · ปรับใหม่ให้เป็นอย่างไร</p></div>
             <div class="sp"></div>
             <span class="badge prop" id="propCount">0 รายการ</span>
           </div>
           <div class="items" id="propItems"></div>
           <button class="btn dash" id="btnAddPropItem"><span class="ms">add</span>เพิ่มประเด็นข้อเสนอ</button>
-        </div>
-
-        <div class="card hide" id="reviewCard">
-          <div class="card-h"><div class="ic"><span class="ms">gavel</span></div><div><h3>ผลการพิจารณา</h3><p id="reviewMeta"></p></div></div>
-          <div class="fg">
-            <div class="f s5"><label>สถานะ</label>
-              <select class="in" id="rv-status"><option>รอพิจารณา</option><option>อนุมัติ</option><option>ส่งกลับแก้ไข</option><option>ไม่อนุมัติ</option></select></div>
-            <div class="f s12"><label>ความเห็นผู้พิจารณา</label><textarea class="in" id="rv-comment"></textarea></div>
-          </div>
-          <div style="margin-top:14px"><button class="btn gold" id="btnReview"><span class="ms">task_alt</span>บันทึกผลการพิจารณา</button></div>
         </div>
 
         <div class="sticky-actions">
@@ -215,7 +223,7 @@
           </div>
           <div style="overflow-x:auto">
             <table class="tbl">
-              <thead><tr><th>ประเภท</th><th>ครู</th><th>โรงเรียนปลายทาง / วิชา</th><th>รายละเอียด</th><th>สถานะ</th><th>แก้ไขล่าสุด</th><th></th></tr></thead>
+              <thead><tr><th>ประเภท</th><th>ครู</th><th>โรงเรียนปลายทาง / วิชา</th><th>รายละเอียด</th><th>ความครบถ้วน</th><th>แก้ไขล่าสุด</th><th></th></tr></thead>
               <tbody id="recBody"></tbody>
             </table>
           </div>
@@ -226,17 +234,17 @@
       <!-- ========== GUIDE ========== -->
       <section class="page" id="pg-guide">
         <div class="grid g2">
-          <div class="card">
+          <div class="card band c-navy">
             <div class="card-h"><div class="ic"><span class="ms">event_note</span></div><div><h3>แผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์</h3></div></div>
             <ol style="margin:0;padding-left:20px;line-height:2">
               <li>กรอกชื่อครู วิชาที่สอนทั้งที่โรงเรียนต้นทางและปลายทาง</li>
-              <li>ระบุห้วงเวลาและโรงเรียนปลายทาง (อำเภอ/จังหวัด)</li>
+              <li>ระบุโรงเรียนปลายทาง สังกัด อำเภอ/จังหวัด และห้วงเวลาปฏิบัติงาน</li>
               <li>เพิ่มรายการรายวัน: วันที่ เวลา ชั้น คาบที่ ลักษณะงาน และรูปแบบที่ 1–3</li>
               <li>ระบบนับคาบ “เข้าสอน” ให้อัตโนมัติ เป้าหมาย 8 คาบ/สัปดาห์</li>
-              <li>กด “พิมพ์ / PDF” เพื่อได้เอกสารรูปแบบเดียวกับแบบฟอร์ม</li>
+              <li>กด “พิมพ์ / PDF” เพื่อได้เอกสารสรุปพร้อมช่องลงชื่อ</li>
             </ol>
           </div>
-          <div class="card">
+          <div class="card band c-gold">
             <div class="card-h"><div class="ic"><span class="ms">tips_and_updates</span></div><div><h3>ข้อเสนอการปรับปรุงเนื้อหา/วิธีการสอน</h3></div></div>
             <ol style="margin:0;padding-left:20px;line-height:2">
               <li>วัน/เวลาที่สอน และระดับชั้น</li>
@@ -247,7 +255,7 @@
             </ol>
           </div>
         </div>
-        <div class="card">
+        <div class="card band c-purple">
           <div class="card-h"><div class="ic"><span class="ms">category</span></div><div><h3>หมายเหตุ: งานที่ครูต้นทางปฏิบัติ ณ โรงเรียนปลายทาง</h3></div></div>
           <div class="legend">
             <div class="lg"><div class="dot" style="background:var(--p1)">1</div><div><b>รูปแบบที่ 1</b><span>เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนของตนผ่านเทปออกอากาศหรือไม่</span></div></div>
@@ -272,6 +280,7 @@
 
 <datalist id="dlSchools"></datalist>
 <datalist id="dlSubjects"></datalist>
+<datalist id="dlAffiliations"></datalist>
 
 <!-- Templates -->
 <template id="tplPlanItem">
