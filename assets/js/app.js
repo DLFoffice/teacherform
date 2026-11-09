@@ -7,6 +7,10 @@ const S = { init: null, records: [], kind: '', planId: '', propId: '', propStatu
 const TITLES = { home: 'ภาพรวม', plan: 'แผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์', proposal: 'ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”', records: 'รายการที่บันทึก', guide: 'คำชี้แจง / รูปแบบงาน' };
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const TH_D = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+const TH_DAY = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+const TH_MONTH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+function thDateLong(s) { const d = parseD(s); return d ? TH_D[d.getDay()] + ' ' + d.getDate() + ' ' + TH_M[d.getMonth()] + ' ' + (d.getFullYear() + 543) : ''; }
+function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 
 /* ---------- utilities ---------- */
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -214,15 +218,21 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- generic item list ---------- */
+function getV(f) { return f.classList.contains('thdate') ? (f.dataset.iso || '') : f.value.trim(); }
+function setV(f, v) {
+  v = v == null ? '' : String(v);
+  if (f.classList.contains('thdate')) { f.dataset.iso = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; f.value = f.dataset.iso ? thDateLong(f.dataset.iso) : ''; }
+  else f.value = v;
+}
 function readItem(el) {
   const o = {};
-  $$('[data-k]', el).forEach(f => { o[f.dataset.k] = f.classList.contains('seg') ? segVal(f) : f.value.trim(); });
+  $$('[data-k]', el).forEach(f => { o[f.dataset.k] = f.classList.contains('seg') ? segVal(f) : getV(f); });
   return o;
 }
 function writeItem(el, o) {
   $$('[data-k]', el).forEach(f => {
     const v = o && o[f.dataset.k] != null ? o[f.dataset.k] : '';
-    if (f.classList.contains('seg')) segSet(f, v); else f.value = v;
+    if (f.classList.contains('seg')) segSet(f, v); else setV(f, v);
   });
 }
 function wireList(box, refresh, addFn) {
@@ -241,6 +251,94 @@ function wireList(box, refresh, addFn) {
   box.addEventListener('change', refresh);
 }
 
+
+/* =========================================================
+ *  ปฏิทินไทย (พ.ศ.) และตัวเลือกเวลา 24 ชม.
+ * ========================================================= */
+const PK = { el: null, input: null, view: null };
+function pkPlace(input) {
+  const pk = $('#picker'), r = input.getBoundingClientRect();
+  pk.classList.add('on');
+  const w = pk.offsetWidth, h = pk.offsetHeight;
+  let left = Math.min(r.left, window.innerWidth - w - 10), top = r.bottom + 6;
+  if (top + h > window.innerHeight - 10 && r.top - h - 6 > 0) top = r.top - h - 6;
+  pk.style.left = Math.max(10, left) + 'px'; pk.style.top = top + 'px';
+}
+function pkClose() { $('#picker').classList.remove('on'); $('#picker').innerHTML = ''; PK.input = null; }
+function pkDate(input) {
+  PK.input = input; PK.mode = 'date';
+  const cur = parseD(input.dataset.iso);
+  const hint = input.id === 'pl-endDate' ? parseD(getV($('#pl-startDate'))) : (input.dataset.k === 'date' ? parseD(getV($('#pl-startDate'))) : null);
+  const base = cur || hint || new Date();
+  PK.view = new Date(base.getFullYear(), base.getMonth(), 1);
+  pkRenderDate(); pkPlace(input);
+}
+function pkRenderDate() {
+  const v = PK.view, y = v.getFullYear(), m = v.getMonth();
+  const sel = PK.input.dataset.iso, today = iso(new Date());
+  const s = parseD(getV($('#pl-startDate'))), e = parseD(getV($('#pl-endDate')));
+  const first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<span></span>';
+  for (let d = 1; d <= days; d++) {
+    const dt = new Date(y, m, d), k = iso(dt);
+    const inR = s && e && dt >= s && dt <= e;
+    cells += '<button type="button" data-d="' + k + '" class="' + [k === sel ? 'sel' : '', k === today ? 'today' : '', inR ? 'range' : '', dt.getDay() === 0 || dt.getDay() === 6 ? 'we' : ''].join(' ') + '">' + d + '</button>';
+  }
+  $('#picker').innerHTML =
+    '<div class="pk-h"><button type="button" class="ibtn" data-nav="-1"><span class="ms">chevron_left</span></button>' +
+    '<b>' + TH_MONTH[m] + ' ' + (y + 543) + '</b>' +
+    '<button type="button" class="ibtn" data-nav="1"><span class="ms">chevron_right</span></button></div>' +
+    '<div class="pk-w">' + TH_D.map(d => '<span>' + d + '</span>').join('') + '</div>' +
+    '<div class="pk-g">' + cells + '</div>' +
+    '<div class="pk-f"><button type="button" class="btn ghost sm" data-clear>ล้าง</button><button type="button" class="btn ghost sm" data-today>วันนี้</button></div>';
+}
+function pkTime(input) {
+  PK.input = input; PK.mode = 'time';
+  const cur = input.value;
+  let html = '<div class="pk-h"><b>เลือกเวลา (24 ชั่วโมง)</b></div><div class="pk-t">';
+  for (let h = 7; h <= 18; h++) for (const mm of ['00', '30']) {
+    const t = String(h).padStart(2, '0') + ':' + mm;
+    html += '<button type="button" data-t="' + t + '" class="' + (t === cur ? 'sel' : '') + '">' + t.replace(':', '.') + '</button>';
+  }
+  html += '</div><div class="pk-f"><small style="color:var(--muted)">พิมพ์เองได้ เช่น 8.15</small><button type="button" class="btn ghost sm" data-clear>ล้าง</button></div>';
+  $('#picker').innerHTML = html; pkPlace(input);
+}
+function normTime(v) {
+  const m = /^(\d{1,2})(?:[.:\s]?(\d{1,2}))?$/.exec(String(v).trim().replace(/\s*น\.?$/, ''));
+  if (!m) return '';
+  const h = +m[1], mi = m[2] ? +(m[2].length === 1 ? m[2] + '0' : m[2]) : 0;
+  if (h > 23 || mi > 59) return '';
+  return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+}
+function pkCommit(input) { input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); }
+document.addEventListener('focusin', e => {
+  const t = e.target;
+  if (t.classList && t.classList.contains('thdate')) pkDate(t);
+  else if (t.classList && t.classList.contains('thtime')) pkTime(t);
+  else if (!t.closest || !t.closest('#picker')) pkClose();
+});
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.classList && (t.classList.contains('thdate') || t.classList.contains('thtime'))) { if (PK.input !== t) t.classList.contains('thdate') ? pkDate(t) : pkTime(t); return; }
+  if (!t.closest('#picker')) { if (PK.input) pkClose(); return; }
+  const inp = PK.input; if (!inp) return;
+  const nav = t.closest('[data-nav]'), d = t.closest('[data-d]'), tm = t.closest('[data-t]');
+  if (nav) { PK.view.setMonth(PK.view.getMonth() + +nav.dataset.nav); pkRenderDate(); return; }
+  if (d) { setV(inp, d.dataset.d); pkCommit(inp); pkClose(); return; }
+  if (tm) { inp.value = tm.dataset.t; pkCommit(inp); pkClose(); return; }
+  if (t.closest('[data-today]')) { setV(inp, iso(new Date())); pkCommit(inp); pkClose(); return; }
+  if (t.closest('[data-clear]')) { setV(inp, ''); pkCommit(inp); pkClose(); }
+});
+document.addEventListener('focusout', e => {
+  const t = e.target;
+  if (t.classList && t.classList.contains('thtime') && t.value) { const n = normTime(t.value); if (n !== t.value) { t.value = n; pkCommit(t); } }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && PK.input) pkClose(); if (e.key === 'Enter' && PK.mode === 'time' && PK.input) { PK.input.blur(); pkClose(); } });
+window.addEventListener('scroll', () => { if (PK.input) pkPlace(PK.input); }, true);
+window.addEventListener('resize', () => { if (PK.input) pkPlace(PK.input); });
+document.addEventListener('keydown', e => { if (e.target.classList && e.target.classList.contains('thdate') && !['Tab', 'Escape'].includes(e.key)) e.preventDefault(); });
+
 /* =========================================================
  *  แผนปฏิบัติงาน
  * ========================================================= */
@@ -252,7 +350,7 @@ function addPlanItem(o, focus) {
   writeItem(el, Object.assign({ type: 'เข้าสอน' }, o || {}));
   if (!o) {
     const last = readPlanItems().slice(-1)[0];
-    if (last) { $('[data-k=date]', el).value = last.date; $('[data-k=subject]', el).value = last.subject; }
+    if (last) { setV($('[data-k=date]', el), last.date); $('[data-k=subject]', el).value = last.subject; }
     else $('[data-k=subject]', el).value = ($('#pl-destSubject').value.split(/[\s(]/)[0] || '');
   }
   $('[data-k=task]', el).addEventListener('change', ev => {
@@ -284,12 +382,12 @@ function refreshPlan() {
 }
 function collectPlan() {
   const p = { id: S.planId, items: readPlanItems() };
-  PLAN_F.forEach(k => p[k] = $('#pl-' + k).value.trim());
+  PLAN_F.forEach(k => p[k] = getV($('#pl-' + k)));
   return p;
 }
 function fillPlan(p) {
   S.planId = p.id || '';
-  PLAN_F.forEach(k => $('#pl-' + k).value = p[k] || '');
+  PLAN_F.forEach(k => setV($('#pl-' + k), p[k] || ''));
   if (!$('#pl-originSchool').value) $('#pl-originSchool').value = (S.init && S.init.originSchool) || '';
   $('#planItems').innerHTML = '';
   (p.items && p.items.length ? p.items : [null]).forEach(it => addPlanItem(it || { type: 'เข้าสอน' }));
@@ -354,7 +452,7 @@ function refreshProp() {
 }
 function collectProp() {
   const p = { id: S.propId, items: readPropItems() };
-  PROP_F.forEach(k => p[k] = $('#pr-' + k).value.trim());
+  PROP_F.forEach(k => p[k] = getV($('#pr-' + k)));
   return p;
 }
 function fillProp(p) {
@@ -525,63 +623,94 @@ document.addEventListener('click', async e => {
  *  พิมพ์ (รูปแบบตามแบบฟอร์ม PDF)
  * ========================================================= */
 const BAR = 'โครงการจัดการเรียนรู้ด้วยการศึกษาทางไกลผ่านดาวเทียม (DLTV) ร่วมกับโรงเรียนปลายทาง';
-function pHead() {
-  return '<div class="phead"><img src="assets/img/logo-foundation.png"><div class="pbar" style="flex:1">' + BAR + '</div><img src="assets/img/logo-dltv.png"></div>';
+const PAT = { '1': 'ดูความเข้าใจนักเรียน', '2': 'ดูการกำกับห้องเรียน', '3': 'สอนจริง' };
+function thShort(a, b) { const f = t => t ? t.replace(':', '.') : ''; return a && b ? f(a) + '–' + f(b) + ' น.' : (a || b ? f(a || b) + ' น.' : ''); }
+function rpHead(title, tag) {
+  return '<div class="rp-head"><img class="f" src="assets/img/logo-foundation.png"><div class="t">' +
+    '<div class="k">มูลนิธิการศึกษาทางไกลผ่านดาวเทียม ในพระบรมราชูปถัมภ์</div>' +
+    '<h1>' + title + (tag ? '<span class="rp-tag">' + tag + '</span>' : '') + '</h1>' +
+    '<div class="s">' + BAR + '</div></div><img class="d" src="assets/img/logo-dltv.png"></div><div class="rp-bar"></div>';
+}
+function rpInfo(list) {
+  return '<div class="rp-info">' + list.map(x => '<div class="' + (x[2] || '') + '"><small>' + x[0] + '</small><b>' + (x[1] ? esc(x[1]) : '<span style="color:#b8bfd6">—</span>') + '</b></div>').join('') + '</div>';
+}
+function rpSign(left, right) {
+  return '<div class="rp-sign"><div><div class="ln"></div>(' + esc(left[0] || '..................................................') + ')<br><small>' + left[1] + '</small></div>' +
+    '<div><div class="ln"></div>(..................................................)<br><small>' + right + '</small></div></div>';
+}
+function rpFoot(id) {
+  const n = new Date();
+  return '<div class="rp-foot"><span>ระบบบันทึกงานครูต้นทาง DLTV' + (id ? ' · รหัส ' + esc(id) : '') + '</span><span>พิมพ์เมื่อ ' +
+    n.getDate() + ' ' + TH_M[n.getMonth()] + ' ' + (n.getFullYear() + 543) + ' ' + String(n.getHours()).padStart(2, '0') + '.' + String(n.getMinutes()).padStart(2, '0') + ' น.</span></div>';
 }
 function doPrint(html) {
+  pkClose();
   $('#printArea').innerHTML = html;
   const imgs = $$('#printArea img');
-  Promise.all(imgs.map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))).then(() => setTimeout(() => window.print(), 150));
+  const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+  Promise.all([ready].concat(imgs.map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))))
+    .then(() => setTimeout(() => window.print(), 200));
 }
+
 function printPlan(p) {
-  const pc = n => n ? '<span class="c' + n + '">(รูปแบบที่ ' + n + ')</span>' : '';
-  let rows = '', lastDate = null;
-  (p.items || []).forEach(i => {
-    const showDate = i.date !== lastDate; lastDate = i.date;
-    const time = thRange(i.start, i.end);
-    let what;
-    if (i.type === 'เข้าสอน') what = 'เข้าสอนวิชา' + esc(i.subject) + ' ' + esc(i.grade) + (i.period ? ' (คาบที่ ' + esc(i.period) + ')' : '') + (i.detail ? ' ' + esc(i.detail) : '');
-    else what = esc(i.detail || i.type);
-    rows += '<tr><td style="white-space:nowrap">' + (showDate ? esc(thDate(i.date)) : '') + '</td><td style="white-space:nowrap">=> ' + esc(time) + '</td><td>' + what + '</td></tr>';
-    if (i.type === 'เข้าสอน' && (i.task || i.pattern)) rows += '<tr><td></td><td></td><td class="task">' + esc(i.task) + ' ' + pc(i.pattern) + '</td></tr>';
-  });
-  const html = '<div class="pdoc">' + pHead() +
-    '<h2 style="font-size:20px;margin:6px 0 12px">แผนปฏิบัติงานรายบุคคล ' + ((S.init && S.init.periodsPerWeek) || 8) + ' คาบ/สัปดาห์</h2>' +
-    '<div class="pplan"><div class="h">แผนการปฏิบัติงาน ครูต้นทาง ' + esc(p.originSchool || '') + ' (รายบุคคล)<br>' + BAR + '</div>' +
-    '<div class="pinfo"><b>ชื่อครู</b> ' + esc(p.teacher) + '<br><b>วิชาที่สอน ณ โรงเรียนต้นทาง</b> ' + esc(p.originSubject) +
-    '<br><b>วิชาที่สอน ณ โรงเรียนปลายทาง</b> ' + esc(p.destSubject) +
-    '<br><b>ห้วงเวลาในการปฏิบัติงาน ณ โรงเรียนปลายทาง</b> ' + esc(thRangeDates(p.startDate, p.endDate)) +
-    '<br><b>โรงเรียนปลายทาง</b> ' + esc(p.destSchool) + (p.district ? ' อำเภอ' + esc(p.district) : '') + (p.province ? ' จังหวัด' + esc(p.province) : '') + '</div>' +
-    '<table class="sched">' + rows + '</table>' +
-    (p.note ? '<p><b>หมายเหตุเพิ่มเติม</b> ' + nl(p.note) + '</p>' : '') +
-    '<p style="margin-top:16px"><b>หมายเหตุ งานที่ครูต้นทางปฏิบัติ ณ โรงเรียนปลายทาง</b><br>' +
-    '<span class="c1">รูปแบบที่ 1)</span> เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนของตนผ่านเทปออกอากาศหรือไม่<br>' +
-    '<span class="c2">รูปแบบที่ 2)</span> เปิดเทปดูการกำกับห้องเรียนของครู<br>' +
-    '<span class="c3">รูปแบบที่ 3)</span> สอนจริง ณ โรงเรียนปลายทางกับลูกค้าจริง</p></div>' +
-    '<div class="psign"><div>ลงชื่อ ......................................................<br>(' + esc(p.teacher) + ')<br>ครูต้นทาง</div><div>ลงชื่อ ......................................................<br>(......................................................)<br>ผู้อนุมัติ</div></div></div>';
+  const items = (p.items || []).filter(i => i.date || i.start || i.detail || i.subject || i.grade || i.period);
+  const teach = items.filter(i => i.type === 'เข้าสอน');
+  const target = (S.init && S.init.periodsPerWeek) || 8;
+  const cnt = k => teach.filter(i => i.pattern === k).length;
+  const days = {};
+  items.forEach(i => { (days[i.date || ''] = days[i.date || ''] || []).push(i); });
+  const order = Object.keys(days).sort((a, b) => (a || '9').localeCompare(b || '9'));
+  const dayHtml = order.map(k => {
+    const d = parseD(k);
+    const head = d ? '<b>' + d.getDate() + '</b><span>' + TH_M[d.getMonth()] + ' ' + String(d.getFullYear() + 543).slice(-2) + '</span><small>' + TH_DAY[d.getDay()] + '</small>'
+      : '<span style="padding:8px 0">ไม่ระบุวัน</span>';
+    const rows = days[k].sort((a, b) => (a.start || '').localeCompare(b.start || '')).map(i => {
+      const isT = i.type === 'เข้าสอน';
+      const title = isT ? 'เข้าสอน' + (i.subject ? 'วิชา' + esc(i.subject) : '') + (i.grade ? ' ' + esc(i.grade) : '') + (i.period ? ' · คาบที่ ' + esc(i.period) : '') : esc(i.type || 'กิจกรรม');
+      const sub = isT ? [i.task, i.detail].filter(Boolean).map(esc).join(' · ') : esc(i.detail || '');
+      const pill = isT && i.pattern ? '<span class="pill p' + i.pattern + '">รูปแบบที่ ' + i.pattern + ' · ' + PAT[i.pattern] + '</span>' : (isT ? '' : '<span class="pill g">' + esc(i.type || '') + '</span>');
+      return '<div class="rp-row ' + (isT ? (i.pattern ? 'p' + i.pattern : 't') : '') + '"><div class="tm">' + (esc(thShort(i.start, i.end)) || '—') + '</div><div class="w"><b>' + title + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>' + pill + '</div>';
+    }).join('');
+    return '<div class="rp-day"><div class="rp-date">' + head + '</div><div class="rp-rows">' + rows + '</div></div>';
+  }).join('');
+  const place = [p.destSchool, p.district ? 'อ.' + p.district : '', p.province ? 'จ.' + p.province : ''].filter(Boolean).join(' ');
+  const html = '<div class="rp">' + rpHead('แผนปฏิบัติงานรายบุคคล ' + target + ' คาบ/สัปดาห์', 'ครูต้นทาง') +
+    rpInfo([['ชื่อครู', p.teacher], ['โรงเรียนต้นทาง', p.originSchool, 'w2'], ['ห้วงเวลาปฏิบัติงาน', thRangeDates(p.startDate, p.endDate)],
+      ['วิชาที่สอน ณ ร.ร.ต้นทาง', p.originSubject], ['วิชาที่สอน ณ ร.ร.ปลายทาง', p.destSubject], ['โรงเรียนปลายทาง', place, 'w2']]) +
+    '<div class="rp-sum"><div class="n"><b>' + teach.length + ' / ' + target + '</b><small>คาบสอน ณ โรงเรียนปลายทาง</small></div>' +
+    '<div class="p1"><b>' + cnt('1') + '</b><small>รูปแบบที่ 1</small></div><div class="p2"><b>' + cnt('2') + '</b><small>รูปแบบที่ 2</small></div>' +
+    '<div class="p3"><b>' + cnt('3') + '</b><small>รูปแบบที่ 3</small></div><div class="o"><b>' + order.filter(Boolean).length + '</b><small>วันปฏิบัติงาน</small></div></div>' +
+    '<div class="rp-sec"><h3>ตารางปฏิบัติงานรายวัน</h3></div>' +
+    (dayHtml || '<div class="rp-empty">ยังไม่มีรายการปฏิบัติงาน</div>') +
+    (p.note ? '<div class="rp-note"><b>หมายเหตุ:</b> ' + nl(p.note) + '</div>' : '') +
+    '<div class="rp-legend"><div class="p1"><b>รูปแบบที่ 1 · ดูความเข้าใจนักเรียน</b>เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนผ่านเทปออกอากาศหรือไม่</div>' +
+    '<div class="p2"><b>รูปแบบที่ 2 · ดูการกำกับห้องเรียน</b>เปิดเทปดูการกำกับห้องเรียนของครูปลายทาง</div>' +
+    '<div class="p3"><b>รูปแบบที่ 3 · สอนจริง</b>สอนจริง ณ โรงเรียนปลายทางกับนักเรียนจริง</div></div>' +
+    rpSign([p.teacher, 'ครูต้นทาง'], 'ผู้อนุมัติ') + rpFoot(p.id) + '</div>';
   doPrint(html);
 }
+
 function printProp(p) {
-  const items = (p.items || []).slice();
-  while (items.length < 6) items.push({});
-  const rows = items.map(i => {
-    const prop = (i.before ? '<div class="lb o">เดิม:</div>' + nl(i.before) : '') + (i.after ? '<div class="lb n">ปรับใหม่:</div>' + nl(i.after) : '');
-    return '<tr style="height:34px"><td>' + esc(i.date ? thDate(i.date) : '') + (i.time ? '<br>' + esc(i.time) : '') + '</td><td style="text-align:center">' + esc(i.grade || '') +
-      '</td><td>' + (i.mode ? '(' + esc(i.mode) + ')<br>' : '') + (i.tape ? 'เทปที่ ' + esc(i.tape) + '<br>' : '') + esc(i.topic || '') +
-      '</td><td>' + nl(i.problem) + '</td><td>' + nl(i.cause) + '</td><td>' + prop + '</td><td style="text-align:center">' + esc(i.minute || '') + '</td><td>' + nl(i.remark) + '</td></tr>';
+  const items = (p.items || []).filter(i => i.problem || i.cause || i.before || i.after || i.topic || i.tape || i.remark);
+  const cards = items.map((i, n) => {
+    const meta = [i.mode ? '<span class="pill y">' + esc(i.mode) + '</span>' : '', i.grade ? '<span class="pill g">' + esc(i.grade) + '</span>' : '',
+      (i.date || i.time) ? '<span class="pill g">' + esc([i.date ? thDate(i.date, 1) : '', i.time].filter(Boolean).join(' · ')) + '</span>' : '',
+      i.minute ? '<span class="pill p1">นาทีที่ ' + esc(i.minute) + '</span>' : ''].join(' ');
+    const blk = (lb, v, cls) => '<div class="' + (cls || '') + '"><div class="lb ' + (cls === 'r' ? 'r' : '') + '">' + lb + '</div>' + (v ? nl(v) : '<span style="color:#b8bfd6">—</span>') + '</div>';
+    return '<div class="rp-card"><div class="h"><div class="no">' + (n + 1) + '</div><b>' + (i.tape ? 'เทปที่ ' + esc(i.tape) : 'ไม่ระบุเทป') + (i.topic ? ' · ' + esc(i.topic) : '') + '</b><div class="sp"></div>' + meta + '</div>' +
+      '<div class="bd">' + blk('ปัญหาที่พบ', i.problem) + blk('สาเหตุของปัญหา', i.cause) +
+      '<div class="rp-ba"><div class="o"><div class="lb">เดิมเป็นอย่างไร</div>' + (i.before ? nl(i.before) : '—') + '</div><div class="a">➜</div>' +
+      '<div class="n"><div class="lb">ปรับใหม่ให้เป็นอย่างไร</div>' + (i.after ? nl(i.after) : '—') + '</div></div>' +
+      (i.remark ? '<div class="full" style="font-size:12px;color:#5b6385"><b>หมายเหตุ:</b> ' + nl(i.remark) + '</div>' : '') + '</div></div>';
   }).join('');
-  const html = '<div class="pdoc">' + pHead() +
-    '<div class="ptitle">ข้อเสนอการปรับปรุง <span class="r">“เนื้อหา/วิธีการสอน”</span> ของครูต้นทาง <span class="b">(การบ้านเพิ่มเติม : รายบุคคล)</span></div>' +
-    '<div class="psub">ตามโครงการจัดการเรียนรู้ด้วยการศึกษาทางไกลผ่านดาวเทียม (DLTV) ร่วมกับโรงเรียนปลายทาง</div>' +
-    '<div class="pinfo"><b>ชื่อครูผู้สอน :</b> ' + esc(p.teacher) + '<br><b>โรงเรียนปลายทาง :</b> ' + esc(p.destSchool) + '<br><b>วิชาที่สอน ณ โรงเรียนปลายทาง :</b> ' + esc(p.destSubject) + '</div>' +
-    '<table class="pt"><colgroup><col style="width:9%"><col style="width:6%"><col style="width:13%"><col style="width:17%"><col style="width:13%"><col style="width:22%"><col style="width:7%"><col style="width:13%"></colgroup>' +
-    '<thead><tr><th>วัน/เวลา<br>ที่สอน</th><th>ระดับชั้น<br>ที่สอน</th><th><span style="font-weight:500;font-size:11px">(เปิดเทป/สอนสด)</span><br><span class="r">ตรงกับเทปที่ ?<br>เรื่องที่สอน ?</span></th>' +
-    '<th><span class="r">ปัญหาที่พบ</span><span class="b">ของ “เนื้อหา/วิธีการสอนของครูต้นทาง” ที่ทำให้ นร.ไม่เข้าใจ</span></th>' +
-    '<th><span class="r">สาเหตุของปัญหา</span><br><span style="font-weight:500">(ทั้งจากครู และทั้งจาก นร.)</span></th>' +
-    '<th><span class="r">ปรับข้อเสนอ</span><br><u>“เนื้อหา/วิธีการสอน”</u><span class="b">(ปรับเพื่อให้ นร.เข้าใจเนื้อหาการสอนมากขึ้น)</span></th>' +
-    '<th>ปรับ ณ<br><span class="r">นาทีที่ ?</span><br>ในเทป</th><th>หมายเหตุ</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-    (p.status && p.status !== 'รอพิจารณา' ? '<p><b>ผลการพิจารณา:</b> ' + esc(p.status) + (p.comment ? ' — ' + nl(p.comment) : '') + '</p>' : '') +
-    '<div class="psign"><div>ลงชื่อ ......................................................<br>(' + esc(p.teacher) + ')<br>ครูผู้เสนอ</div><div>ลงชื่อ ......................................................<br>(......................................................)<br>ผู้พิจารณา</div></div></div>';
+  const st = p.status || '';
+  const rv = st && st !== 'รอพิจารณา' ? '<div class="rp-review ' + (st === 'อนุมัติ' ? 'ok' : st === 'ไม่อนุมัติ' ? 'no' : 'w') + '"><b>ผลการพิจารณา: ' + esc(st) + '</b>' + (p.comment ? ' — ' + nl(p.comment) : '') + '</div>' : '';
+  const html = '<div class="rp">' + rpHead('ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”', 'การบ้านเพิ่มเติม · รายบุคคล') +
+    rpInfo([['ครูผู้สอน', p.teacher], ['โรงเรียนปลายทาง', p.destSchool], ['วิชาที่สอน ณ โรงเรียนปลายทาง', p.destSubject]]) +
+    '<div class="rp-guide"><span>ปรับตรงไหนของเทป?</span><em>→</em><span class="r">เดิมเป็นอย่างไร?</span><em>→</em><span class="n">ปรับใหม่ให้เป็นอย่างไร?</span><i>*** หากอนุมัติแล้วสามารถปฏิบัติได้เลย ***</i></div>' +
+    rv + '<div class="rp-sec"><h3>ประเด็นข้อเสนอ (' + items.length + ')</h3></div>' +
+    (cards || '<div class="rp-empty">ยังไม่มีประเด็นข้อเสนอ</div>') +
+    rpSign([p.teacher, 'ครูผู้เสนอ'], 'ผู้พิจารณา') + rpFoot(p.id) + '</div>';
   doPrint(html);
 }
 

@@ -113,8 +113,8 @@
             <div class="f s6"><label>โรงเรียนต้นทาง</label><input class="in" id="pl-originSchool"></div>
             <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนต้นทาง</label><input class="in" id="pl-originSubject" placeholder="เช่น ภาษาไทย ป.5" list="dlSubjects"></div>
             <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pl-destSubject" placeholder="เช่น ภาษาไทย (ป.5-6 ชั้นละ 4/5 คาบ/สัปดาห์)"></div>
-            <div class="f s3 half"><label>ห้วงเวลาปฏิบัติงาน: เริ่ม</label><input class="in" type="date" id="pl-startDate"></div>
-            <div class="f s3 half"><label>ถึง</label><input class="in" type="date" id="pl-endDate"></div>
+            <div class="f s3 half"><label>ห้วงเวลาปฏิบัติงาน: เริ่ม</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-startDate"></div>
+            <div class="f s3 half"><label>ถึง</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-endDate"></div>
             <div class="f s6"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pl-destSchool" placeholder="เช่น โรงเรียนบ้านหนองหญ้าปล้อง" list="dlSchools"></div>
             <div class="f s6"><label>อำเภอ</label><input class="in" id="pl-district" placeholder="เช่น บางสะพาน"></div>
             <div class="f s6"><label>จังหวัด</label><input class="in" id="pl-province" placeholder="เช่น ประจวบคีรีขันธ์"></div>
@@ -285,9 +285,9 @@
       <button class="ibtn del" data-act="del" title="ลบ"><span class="ms">delete</span></button>
     </div>
     <div class="fg">
-      <div class="f s3 half"><label>วันที่</label><input class="in" type="date" data-k="date"></div>
-      <div class="f s2 half"><label>เวลาเริ่ม</label><input class="in" type="time" data-k="start"></div>
-      <div class="f s2 half"><label>เวลาสิ้นสุด</label><input class="in" type="time" data-k="end"></div>
+      <div class="f s3 half"><label>วันที่</label><input class="in thdate" readonly placeholder="เลือกวันที่" data-k="date"></div>
+      <div class="f s2 half"><label>เวลาเริ่ม</label><input class="in thtime" inputmode="decimal" placeholder="--.--" autocomplete="off" data-k="start"></div>
+      <div class="f s2 half"><label>เวลาสิ้นสุด</label><input class="in thtime" inputmode="decimal" placeholder="--.--" autocomplete="off" data-k="end"></div>
       <div class="f s5"><label>ประเภทกิจกรรม</label>
         <div class="seg" data-k="type">
           <button data-v="เข้าสอน">เข้าสอน</button><button data-v="เดินทาง">เดินทาง</button><button data-v="ประชุม/พูดคุย">ประชุม/พูดคุย</button><button data-v="อื่น ๆ">อื่น ๆ</button>
@@ -323,7 +323,7 @@
       <button class="ibtn del" data-act="del" title="ลบ"><span class="ms">delete</span></button>
     </div>
     <div class="fg">
-      <div class="f s3 half"><label>วันที่สอน</label><input class="in" type="date" data-k="date"></div>
+      <div class="f s3 half"><label>วันที่สอน</label><input class="in thdate" readonly placeholder="เลือกวันที่" data-k="date"></div>
       <div class="f s3 half"><label>เวลาที่สอน</label><input class="in" data-k="time" placeholder="08.30–09.30 น."></div>
       <div class="f s2 half"><label>ระดับชั้น</label>
         <select class="in" data-k="grade"><option value="">–</option><option>อ.1</option><option>อ.2</option><option>อ.3</option><option>ป.1</option><option>ป.2</option><option>ป.3</option><option>ป.4</option><option>ป.5</option><option>ป.6</option><option>ม.1</option><option>ม.2</option><option>ม.3</option><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></div>
@@ -375,6 +375,7 @@
 <div class="ovl" id="ovl"><div class="modal"><h3 id="mTitle"></h3><p id="mText"></p><div class="row"><button class="btn ghost" id="mNo">ยกเลิก</button><button class="btn pri" id="mYes">ยืนยัน</button></div></div></div>
 <div class="loader" id="loader"><div class="spin"></div></div>
 <div class="toasts" id="toasts"></div>
+<div class="picker" id="picker"></div>
 <div id="printArea"></div>
 
 <script src="assets/js/config.js"></script>
