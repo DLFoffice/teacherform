@@ -8,7 +8,7 @@
  *                    ถ้าเว้นว่าง จะใช้การกรอกชื่อ/อีเมลแบบง่าย (ไม่ยืนยันตัวตน)
  */
 window.APP_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbysRjKQRPTQpbYyx7FsT1nC_xu7DcklmGWS8xckbdZ3ByG5_6RvpaLPg_1ewjsB04zgnQ/exec',
+  API_URL: '',
   GOOGLE_CLIENT_ID: '',
   ALLOWED_DOMAIN_HINT: '' // เช่น 'dltv.ac.th' เพื่อให้หน้าเลือกบัญชีแสดงเฉพาะโดเมนนี้ (ไม่บังคับ)
 };

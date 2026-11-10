@@ -3,8 +3,7 @@
  * ========================================================= */
 const $ = (s, el) => (el || document).querySelector(s);
 const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
-const S = { init: null, records: [], kind: '', planId: '', propId: '' };
-const TITLES = { home: 'ภาพรวม', plan: 'แผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์', proposal: 'ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”', records: 'รายการที่บันทึก', guide: 'คำชี้แจง / รูปแบบงาน' };
+const S = { init: null, records: [], ready: false, plan: null, prop: null, step: 1, edit: -1, sel: '', panelMode: 'teach' };
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const TH_D = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
 const TH_DAY = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
@@ -163,7 +162,7 @@ function hideLogin() { $('#login').classList.remove('on'); }
 function logout() {
   const email = AUTH.email;
   Object.assign(AUTH, { token: '', email: '', name: '', picture: '', exp: 0 });
-  S.ready = false; S.init = null; S.records = [];
+  S.ready = false; S.init = null; S.records = []; S.plan = null; S.prop = null;
   try { localStorage.removeItem('dltv_auth'); } catch (e) { }
   store.del('lite');
   if (MODE === 'google' && window.google && google.accounts) { google.accounts.id.disableAutoSelect(); if (email) google.accounts.id.revoke(email, () => { }); }
@@ -175,8 +174,9 @@ function loading(on) { $('#loader').classList.toggle('on', !!on); }
 function toast(msg, type) {
   const t = document.createElement('div');
   t.className = 'toast ' + (type || 'ok');
-  t.innerHTML = '<span class="ms fill">' + (type === 'bad' ? 'error' : 'check_circle') + '</span><span>' + esc(msg) + '</span>';
+  t.innerHTML = '<svg class="ico"><use href="#' + (type === 'bad' ? 'i-alert' : 'i-check') + '"/></svg><span>' + esc(msg) + '</span>';
   $('#toasts').appendChild(t);
+  while ($('#toasts').children.length > 2) $('#toasts').firstChild.remove();
   setTimeout(() => { t.style.transition = '.3s'; t.style.opacity = 0; setTimeout(() => t.remove(), 300); }, 3200);
 }
 function errMsg(e) { return (e && e.message) ? e.message.replace(/^Exception:\s*/, '') : String(e); }
@@ -194,65 +194,6 @@ const store = {
   set(k, v) { try { localStorage.setItem('dltv_' + k, JSON.stringify(v)); } catch (e) { } },
   del(k) { try { localStorage.removeItem('dltv_' + k); } catch (e) { } }
 };
-
-/* ---------- navigation ---------- */
-function go(page) {
-  $$('.page').forEach(p => p.classList.toggle('on', p.id === 'pg-' + page));
-  $$('[data-go]').forEach(b => { if (b.closest('.nav,.bnav')) b.classList.toggle('on', b.dataset.go === page); });
-  $('#pageTitle').textContent = TITLES[page] || '';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  if (page === 'records' || page === 'home' || page === 'proposal') loadRecords();
-}
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go);
-});
-
-/* ---------- segmented control ---------- */
-function segVal(seg) { const on = $('button.on', seg); return on ? on.dataset.v : ''; }
-function segSet(seg, v) { $$('button', seg).forEach(b => b.classList.toggle('on', b.dataset.v === String(v))); }
-document.addEventListener('click', e => {
-  const b = e.target.closest('.seg button'); if (!b) return;
-  const seg = b.parentElement;
-  if (seg.id === 'kindSeg') return;
-  const was = b.classList.contains('on');
-  $$('button', seg).forEach(x => x.classList.remove('on'));
-  if (!was || seg.dataset.k === 'type' || seg.dataset.k === 'mode') b.classList.add('on');
-  seg.dispatchEvent(new Event('input', { bubbles: true }));
-});
-
-/* ---------- generic item list ---------- */
-function getV(f) { return f.classList.contains('thdate') ? (f.dataset.iso || '') : f.value.trim(); }
-function setV(f, v) {
-  v = v == null ? '' : String(v);
-  if (f.classList.contains('thdate')) { f.dataset.iso = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; f.value = f.dataset.iso ? thDateLong(f.dataset.iso) : ''; }
-  else f.value = v;
-}
-function readItem(el) {
-  const o = {};
-  $$('[data-k]', el).forEach(f => { o[f.dataset.k] = f.classList.contains('seg') ? segVal(f) : getV(f); });
-  return o;
-}
-function writeItem(el, o) {
-  $$('[data-k]', el).forEach(f => {
-    const v = o && o[f.dataset.k] != null ? o[f.dataset.k] : '';
-    if (f.classList.contains('seg')) segSet(f, v); else setV(f, v);
-  });
-}
-function wireList(box, refresh, addFn) {
-  box.addEventListener('click', e => {
-    const b = e.target.closest('[data-act]'); if (!b) return;
-    const it = b.closest('.item');
-    if (b.dataset.act === 'del') {
-      confirmBox('ลบรายการนี้?', 'ข้อมูลในรายการนี้จะถูกลบออกจากแบบฟอร์ม', 'ลบ').then(ok => { if (ok) { it.remove(); refresh(); } });
-    } else if (b.dataset.act === 'dup') {
-      const c = addFn(readItem(it)); it.after(c); refresh();
-    } else if (b.dataset.act === 'up' && it.previousElementSibling) {
-      it.parentElement.insertBefore(it, it.previousElementSibling); refresh();
-    }
-  });
-  box.addEventListener('input', refresh);
-  box.addEventListener('change', refresh);
-}
 
 
 /* =========================================================
@@ -342,444 +283,680 @@ window.addEventListener('scroll', () => { if (PK.input) pkPlace(PK.input); }, tr
 window.addEventListener('resize', () => { if (PK.input) pkPlace(PK.input); });
 document.addEventListener('keydown', e => { if (e.target.classList && e.target.classList.contains('thdate') && !['Tab', 'Escape'].includes(e.key)) e.preventDefault(); });
 
-/* =========================================================
- *  แผนปฏิบัติงาน
- * ========================================================= */
-const PLAN_F = ['teacher', 'originSchool', 'originSubject', 'destSubject', 'startDate', 'endDate', 'destSchool', 'affiliation', 'district', 'province', 'note'];
-const TASK2PAT = { 'สอนเปิดเทปสังเกตนักเรียน': '1', 'สอนเปิดเทปสังเกตการกำกับห้องเรียน': '2', 'สอนจริง': '3' };
 
-function addPlanItem(o, focus) {
-  const el = $('#tplPlanItem').content.firstElementChild.cloneNode(true);
-  writeItem(el, Object.assign({ type: 'เข้าสอน' }, o || {}));
-  if (!o) {
-    const last = readPlanItems().slice(-1)[0];
-    if (last) { setV($('[data-k=date]', el), last.date); $('[data-k=subject]', el).value = last.subject; }
-    else $('[data-k=subject]', el).value = ($('#pl-destSubject').value.split(/[\s(]/)[0] || '');
-  }
-  $('[data-k=task]', el).addEventListener('change', ev => {
-    const p = TASK2PAT[ev.target.value]; const seg = $('[data-k=pattern]', el);
-    if (p && !segVal(seg)) segSet(seg, p);
-  });
-  $('#planItems').appendChild(el);
-  refreshPlan();
-  if (focus) $('[data-k=date]', el).focus();
-  return el;
+
+/* ---------- ค่าในช่องกรอก (รองรับปฏิทินไทย) ---------- */
+function getV(f) { return f.classList.contains('thdate') ? (f.dataset.iso || '') : f.value.trim(); }
+function setV(f, v) {
+  v = v == null ? '' : String(v);
+  if (f.classList.contains('thdate')) { f.dataset.iso = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : ''; f.value = f.dataset.iso ? thDateLong(f.dataset.iso) : ''; }
+  else f.value = v;
 }
-function readPlanItems() { return $$('#planItems .item').map(readItem); }
-function refreshPlan() {
-  let n = 0;
-  $$('#planItems .item').forEach((el, i) => {
-    const o = readItem(el); const teach = o.type === 'เข้าสอน';
-    if (teach) n++;
-    $('.num', el).textContent = i + 1;
-    $('.teach-only', el).classList.toggle('hide', !teach);
-    el.className = 'item' + (teach ? ' t-teach' + (o.pattern ? ' p' + o.pattern : '') : '');
-    $('.t', el).textContent = teach ? ('เข้าสอน' + (o.subject ? 'วิชา' + o.subject : '') + (o.grade ? ' ' + o.grade : '') + (o.period ? ' (คาบที่ ' + o.period + ')' : '')) : (o.type || 'รายการ');
-    $('.sub', el).textContent = [o.date ? thDay(o.date) + ' ' + thDate(o.date, 1) : '', thRange(o.start, o.end)].filter(Boolean).join(' · ');
-  });
-  const t = (S.init && S.init.periodsPerWeek) || 8;
-  $('#planCount').textContent = n;
-  $('#planRing').style.setProperty('--v', Math.min(100, n / t * 100));
-  $('#planRing').classList.toggle('full', n >= t);
-}
-function collectPlan() {
-  const p = { id: S.planId, items: readPlanItems() };
-  PLAN_F.forEach(k => p[k] = getV($('#pl-' + k)));
-  return p;
-}
-function fillPlan(p) {
-  S.planId = p.id || '';
-  PLAN_F.forEach(k => setV($('#pl-' + k), p[k] || ''));
-  if (!$('#pl-originSchool').value) $('#pl-originSchool').value = (S.init && S.init.originSchool) || '';
-  $('#planItems').innerHTML = '';
-  (p.items && p.items.length ? p.items : [null]).forEach(it => addPlanItem(it || { type: 'เข้าสอน' }));
-  $('#planIdBadge').textContent = S.planId ? 'รหัส ' + S.planId : 'แผนใหม่';
-  $('#planSaveInfo').textContent = p.updated ? 'บันทึกล่าสุด ' + since(p.updated) : 'ยังไม่ได้บันทึก';
-  refreshPlan();
-}
-function draftPlan() { if (S.ready) store.set(dk('planDraft'), collectPlan()); }
-function draftProp() { if (S.ready) store.set(dk('propDraft'), collectProp()); }
+
+/* ---------- ค่าคงที่ ---------- */
+const TARGET = () => (S.init && S.init.periodsPerWeek) || 8;
+const PAT_NAME = { '1': 'ดูว่านักเรียนเข้าใจเทปไหม', '2': 'ดูครูปลายทางคุมชั้นเรียน', '3': 'สอนเองจริง' };
+const PAT_TASK = { '1': 'สอนเปิดเทปสังเกตนักเรียน', '2': 'สอนเปิดเทปสังเกตการกำกับห้องเรียน', '3': 'สอนจริง' };
+const TASK_PAT = { 'สอนเปิดเทปสังเกตนักเรียน': '1', 'สอนเปิดเทปสังเกตการกำกับห้องเรียน': '2', 'สอนจริง': '3' };
+const GRADES = ['ป.1', 'ป.2', 'ป.3', 'ป.4', 'ป.5', 'ป.6', 'ม.1', 'ม.2', 'ม.3'];
+const PLAN_F = ['teacher', 'originSchool', 'originSubject', 'destSubject', 'startDate', 'endDate', 'destSchool', 'affiliation', 'district', 'province', 'note'];
+const PROFILE_F = ['teacher', 'originSubject', 'destSubject', 'destSchool', 'affiliation', 'district', 'province'];
+const BAR = 'โครงการจัดการเรียนรู้ด้วยการศึกษาทางไกลผ่านดาวเทียม (DLTV) ร่วมกับโรงเรียนปลายทาง';
+
+function thShort(a, b) { const f = t => t ? t.replace(':', '.') : ''; return a && b ? f(a) + '–' + f(b) + ' น.' : (a || b ? f(a || b) + ' น.' : ''); }
+function addHour(t) { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); if (!m) return ''; const h = Math.min(23, +m[1] + 1); return String(h).padStart(2, '0') + ':' + m[2]; }
+function isTeach(i) { return i.type === 'เข้าสอน'; }
+function patOf(i) { return i.pattern || TASK_PAT[i.task] || ''; }
+function teachItems(p) { return ((p && p.items) || []).filter(isTeach); }
+function sortItems(items) { return items.slice().sort((a, b) => ((a.date || '9') + (a.start || '')).localeCompare((b.date || '9') + (b.start || ''))); }
 function dk(k) { return k + '_' + (AUTH.email || 'anon'); }
 function profile() { return (S.init && S.init.profile) || {}; }
 function rememberLocal(p) {
   if (!S.init) return;
   const pf = S.init.profile = S.init.profile || {};
-  ['teacher', 'originSubject', 'destSubject', 'destSchool', 'affiliation', 'district', 'province'].forEach(k => { if (p[k]) pf[k] = p[k]; });
+  PROFILE_F.forEach(k => { if (p[k]) pf[k] = p[k]; });
 }
-function newPlan() {
-  const last = profile();
-  fillPlan({ teacher: last.teacher || AUTH.name, originSubject: last.originSubject, destSubject: last.destSubject, destSchool: last.destSchool, affiliation: last.affiliation, district: last.district, province: last.province });
-}
-function sortPlan() {
-  const items = readPlanItems().sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
-  $('#planItems').innerHTML = ''; items.forEach(it => addPlanItem(it));
-}
-async function savePlan() {
-  const p = collectPlan();
-  let bad = false;
-  ['teacher', 'destSchool'].forEach(k => { const el = $('#pl-' + k); const e = !el.value.trim(); el.classList.toggle('err', e); bad = bad || e; });
-  if (bad) { toast('กรุณากรอกข้อมูลที่มีเครื่องหมาย *', 'bad'); return; }
-  const btn = $('#btnSavePlan'); btn.disabled = true; loading(true);
-  try {
-    const r = await api('savePlan', p);
-    S.planId = r.id;
-    $('#planIdBadge').textContent = 'รหัส ' + r.id;
-    $('#planSaveInfo').textContent = 'บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' · ' + r.periods + ' คาบสอน';
-    store.del(dk('planDraft')); rememberLocal(p);
-    toast('บันทึกแผนปฏิบัติงานเรียบร้อย');
-    loadRecords();
-  } catch (e) { toast(errMsg(e), 'bad'); }
-  finally { btn.disabled = false; loading(false); }
-}
-async function openPlan(id) {
-  loading(true);
-  try { fillPlan(await api('getPlan', id)); go('plan'); }
-  catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
-}
+function firstWord(s) { return String(s || '').split(/[\s(]/)[0]; }
 
 /* =========================================================
- *  ข้อเสนอการปรับปรุง
+ *  การนำทาง
  * ========================================================= */
-const PROP_F = ['teacher', 'destSchool', 'affiliation', 'destSubject', 'planId'];
-function addPropItem(o, focus) {
-  const el = $('#tplPropItem').content.firstElementChild.cloneNode(true);
-  writeItem(el, Object.assign({ mode: 'เปิดเทป' }, o || {}));
-  $('#propItems').appendChild(el);
-  refreshProp();
-  if (focus) $('[data-k=date]', el).focus();
-  return el;
-}
-function readPropItems() { return $$('#propItems .item').map(readItem); }
-function refreshProp() {
-  const list = $$('#propItems .item');
-  list.forEach((el, i) => {
-    const o = readItem(el);
-    $('.num', el).textContent = i + 1;
-    $('.t', el).textContent = (o.tape ? 'เทปที่ ' + o.tape : 'ประเด็นข้อเสนอ') + (o.topic ? ' · ' + o.topic : '');
-    $('.sub', el).textContent = [o.mode, o.grade, o.date ? thDate(o.date, 1) : '', o.minute ? 'นาทีที่ ' + o.minute : ''].filter(Boolean).join(' · ');
-  });
-  $('#propCount').textContent = list.length + ' รายการ';
-}
-function collectProp() {
-  const p = { id: S.propId, items: readPropItems() };
-  PROP_F.forEach(k => p[k] = getV($('#pr-' + k)));
-  return p;
-}
-function fillProp(p) {
-  S.propId = p.id || '';
-  fillPlanSelect(p.planId);
-  PROP_F.forEach(k => { if (k !== 'planId') $('#pr-' + k).value = p[k] || ''; });
-  $('#propItems').innerHTML = '';
-  (p.items && p.items.length ? p.items : [null]).forEach(it => addPropItem(it));
-  $('#propIdBadge').textContent = S.propId ? 'รหัส ' + S.propId : 'ข้อเสนอใหม่';
-  $('#propSaveInfo').textContent = p.updated ? 'บันทึกล่าสุด ' + since(p.updated) : 'ยังไม่ได้บันทึก';
-  refreshProp();
-}
-function newProp() {
-  const last = profile();
-  fillProp({ teacher: last.teacher || AUTH.name, destSchool: last.destSchool, affiliation: last.affiliation, destSubject: (last.destSubject || '').split(/[\s(]/)[0] });
-}
-function fillPlanSelect(sel) {
-  const s = $('#pr-planId'); const cur = sel != null ? sel : s.value;
-  const plans = S.records.filter(r => r.kind === 'plan');
-  s.innerHTML = '<option value="">— ไม่อ้างอิงแผน —</option>' + plans.map(p =>
-    '<option value="' + esc(p.id) + '">' + esc(p.teacher) + ' · ' + esc(p.school || '-') + ' · ' + esc(thRangeDates(p.startDate, p.endDate)) + '</option>').join('');
-  if (cur && !plans.some(p => p.id === cur)) s.insertAdjacentHTML('beforeend', '<option value="' + esc(cur) + '">' + esc(cur) + '</option>');
-  s.value = cur || '';
-}
-async function onPlanPick() {
-  const id = $('#pr-planId').value; if (!id) return;
-  const r = S.records.find(x => x.id === id); if (!r) return;
-  if (!$('#pr-teacher').value) $('#pr-teacher').value = r.teacher;
-  if (!$('#pr-destSchool').value) $('#pr-destSchool').value = r.school;
-  if (!$('#pr-affiliation').value && r.affiliation) $('#pr-affiliation').value = r.affiliation;
-  if (!$('#pr-destSubject').value) $('#pr-destSubject').value = (r.subject || '').split(/[\s(]/)[0];
-  refreshProp();
-}
-async function importPeriods() {
-  const id = $('#pr-planId').value;
-  if (!id) { toast('กรุณาเลือกแผนปฏิบัติงานก่อน', 'bad'); return; }
-  loading(true);
-  try {
-    const p = await api('getPlan', id);
-    const teach = p.items.filter(i => i.type === 'เข้าสอน');
-    if (!teach.length) { toast('แผนนี้ยังไม่มีคาบสอน', 'bad'); return; }
-    const empty = readPropItems().every(o => !o.problem && !o.before && !o.after && !o.topic && !o.tape);
-    if (empty) $('#propItems').innerHTML = '';
-    teach.forEach(i => addPropItem({ date: i.date, time: thRange(i.start, i.end), grade: i.grade, mode: i.task === 'สอนจริง' ? 'สอนสด' : 'เปิดเทป' }));
-    toast('ดึง ' + teach.length + ' คาบสอนจากแผนแล้ว');
-  } catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
-}
-async function saveProp() {
-  const p = collectProp();
-  let bad = false;
-  ['teacher', 'destSchool'].forEach(k => { const el = $('#pr-' + k); const e = !el.value.trim(); el.classList.toggle('err', e); bad = bad || e; });
-  if (bad) { toast('กรุณากรอกข้อมูลที่มีเครื่องหมาย *', 'bad'); return; }
-  if (!p.items.some(o => o.problem || o.before || o.after || o.topic)) { toast('กรุณากรอกอย่างน้อย 1 ประเด็นข้อเสนอ', 'bad'); return; }
-  const btn = $('#btnSaveProp'); btn.disabled = true; loading(true);
-  try {
-    const r = await api('saveProposal', p);
-    S.propId = r.id;
-    $('#propIdBadge').textContent = 'รหัส ' + r.id;
-    $('#propSaveInfo').textContent = 'บันทึกแล้ว ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' · ' + r.count + ' ประเด็น';
-    store.del(dk('propDraft')); rememberLocal({ teacher: p.teacher, destSchool: p.destSchool, affiliation: p.affiliation });
-    toast('บันทึกข้อเสนอเรียบร้อย');
-    loadRecords();
-  } catch (e) { toast(errMsg(e), 'bad'); }
-  finally { btn.disabled = false; loading(false); }
-}
-async function openProp(id) {
-  loading(true);
-  try { fillProp(await api('getProposal', id)); go('proposal'); }
-  catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
-}
-/* =========================================================
- *  รายการ / ภาพรวม
- * ========================================================= */
-let loadingRecs = false;
-async function loadRecords() {
-  if (loadingRecs) return; loadingRecs = true;
-  try {
-    const r = await api('listRecords');
-    S.records = r.records;
-    $('#st-plans').textContent = r.stat.plans;
-    $('#st-periods').textContent = r.stat.periods;
-    $('#st-items').textContent = r.stat.items;
-    $('#st-schools').textContent = r.stat.schools;
-    renderRecent(); renderRecords(); fillPlanSelect();
-  } catch (e) { toast(errMsg(e), 'bad'); $('#recentList').innerHTML = '<div class="empty">' + esc(errMsg(e)) + '</div>'; }
-  finally { loadingRecs = false; }
-}
-function recDetail(r) {
-  return r.kind === 'plan'
-    ? '<span class="ms" style="font-size:16px;color:var(--muted)">date_range</span> ' + esc(thRangeDates(r.startDate, r.endDate) || '-') + ' · <b>' + r.periods + '</b> คาบ'
-    : '<b>' + r.count + '</b> ประเด็นข้อเสนอ';
-}
-function recStatus(r) {
-  if (r.kind === 'plan') return '<span class="badge ' + (r.periods >= 8 ? 's-ok' : 's-wait') + '">' + (r.periods >= 8 ? 'ครบ 8 คาบ' : 'ยังไม่ครบ ' + r.periods + '/8') + '</span>';
-  return '<span class="badge ' + (r.count ? 's-ok' : 's-wait') + '">' + (r.count ? 'มีข้อเสนอแล้ว' : 'ยังไม่มีประเด็น') + '</span>';
-}
-function renderRecent() {
-  const list = S.records.slice(0, 6);
-  $('#recentList').innerHTML = list.length ? list.map(r =>
-    '<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer" data-open="' + r.kind + '|' + esc(r.id) + '">' +
-    '<div class="ic" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;background:' + (r.kind === 'plan' ? '#e8ecff;color:var(--navy)' : 'var(--gold-soft);color:#b07d00') + '"><span class="ms">' + (r.kind === 'plan' ? 'event_note' : 'tips_and_updates') + '</span></div>' +
-    '<div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.teacher) + ' · ' + esc(r.school || '-') + '</b><small style="color:var(--muted)">' + (r.kind === 'plan' ? 'แผนปฏิบัติงาน' : 'ข้อเสนอปรับปรุง') + ' · ' + esc(since(r.updated)) + '</small></div>' +
-    recStatus(r) + '</div>').join('')
-    : '<div class="empty"><span class="ms">inbox</span>ยังไม่มีรายการ เริ่มสร้างแผนปฏิบัติงานได้เลย</div>';
-}
-function renderRecords() {
-  const q = $('#q').value.trim().toLowerCase();
-  const list = S.records.filter(r => (!S.kind || r.kind === S.kind) &&
-    (!q || [r.teacher, r.school, r.affiliation, r.subject, r.id, r.email].join(' ').toLowerCase().includes(q)));
-  $('#recEmpty').classList.toggle('hide', list.length > 0);
-  $('#recBody').innerHTML = list.map(r =>
-    '<tr>' +
-    '<td data-l="ประเภท"><span class="badge ' + (r.kind === 'plan' ? 'plan' : 'prop') + '">' + (r.kind === 'plan' ? 'แผนปฏิบัติงาน' : 'ข้อเสนอ') + '</span></td>' +
-    '<td data-l="ครู" class="who"><b>' + esc(r.teacher) + '</b><small>' + esc(r.email || '') + '</small></td>' +
-    '<td data-l="โรงเรียน/วิชา" class="who"><b>' + esc(r.school || '-') + '</b><small>' + esc([r.affiliation, r.subject].filter(Boolean).join(' · ')) + '</small></td>' +
-    '<td data-l="รายละเอียด">' + recDetail(r) + '</td>' +
-    '<td data-l="สถานะ">' + recStatus(r) + '</td>' +
-    '<td data-l="แก้ไขล่าสุด" style="color:var(--muted);white-space:nowrap">' + esc(since(r.updated)) + '</td>' +
-    '<td><div class="acts">' +
-    '<button class="ibtn" title="เปิด/แก้ไข" data-open="' + r.kind + '|' + esc(r.id) + '"><span class="ms">edit</span></button>' +
-    '<button class="ibtn" title="พิมพ์" data-print="' + r.kind + '|' + esc(r.id) + '"><span class="ms">print</span></button>' +
-    '<button class="ibtn del" title="ลบ" data-del="' + r.kind + '|' + esc(r.id) + '"><span class="ms">delete</span></button>' +
-    '</div></td></tr>').join('');
-}
-document.addEventListener('click', async e => {
-  const o = e.target.closest('[data-open]'), p = e.target.closest('[data-print]'), d = e.target.closest('[data-del]');
-  if (o) { const [k, id] = o.dataset.open.split('|'); k === 'plan' ? openPlan(id) : openProp(id); }
-  if (p) {
-    const [k, id] = p.dataset.print.split('|'); loading(true);
-    try { k === 'plan' ? printPlan(await api('getPlan', id)) : printProp(await api('getProposal', id)); }
-    catch (er) { toast(errMsg(er), 'bad'); } finally { loading(false); }
+let page = 'home';
+function go(p) {
+  page = p;
+  pkClose();
+  $$('.page').forEach(x => x.classList.toggle('on', x.id === 'pg-' + p));
+  $$('.nav [data-go]').forEach(b => { b.classList.toggle('on', b.dataset.go === p); b.setAttribute('aria-current', b.dataset.go === p ? 'page' : 'false'); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (p === 'home') loadRecords();
+  if (p === 'plan') {
+    if (!S.plan) {
+      const cur = S.records.find(r => r.kind === 'plan' && r.email === AUTH.email);
+      if (cur) { openPlan(cur.id); return; }
+      newPlan();
+    }
+    renderPlan();
   }
-  if (d) {
-    const [k, id] = d.dataset.del.split('|');
-    if (!await confirmBox('ลบรายการนี้ถาวร?', 'รหัส ' + id + ' จะถูกลบออกจาก Google Sheets และไม่สามารถกู้คืนได้', 'ลบถาวร')) return;
-    loading(true);
-    try {
-      await api('deleteRecord', k, id); toast('ลบรายการแล้ว');
-      if (k === 'plan' && S.planId === id) newPlan();
-      if (k === 'proposal' && S.propId === id) newProp();
-      await loadRecords();
-    } catch (er) { toast(errMsg(er), 'bad'); } finally { loading(false); }
-  }
+  if (p === 'proposal') openProposalPage();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go);
 });
 
 /* =========================================================
- *  พิมพ์ (รูปแบบตามแบบฟอร์ม PDF)
+ *  บันทึกอัตโนมัติ
  * ========================================================= */
-const BAR = 'โครงการจัดการเรียนรู้ด้วยการศึกษาทางไกลผ่านดาวเทียม (DLTV) ร่วมกับโรงเรียนปลายทาง';
-const PAT = { '1': 'ดูความเข้าใจนักเรียน', '2': 'ดูการกำกับห้องเรียน', '3': 'สอนจริง' };
-function thShort(a, b) { const f = t => t ? t.replace(':', '.') : ''; return a && b ? f(a) + '–' + f(b) + ' น.' : (a || b ? f(a || b) + ' น.' : ''); }
-function rpHead(title, tag) {
-  return '<div class="rp-head"><img class="f" src="assets/img/logo-foundation.png"><div class="t">' +
-    '<div class="k">มูลนิธิการศึกษาทางไกลผ่านดาวเทียม ในพระบรมราชูปถัมภ์</div>' +
-    '<h1>' + title + (tag ? '<span class="rp-tag">' + tag + '</span>' : '') + '</h1>' +
-    '<div class="s">' + BAR + '</div></div><img class="d" src="assets/img/logo-dltv.png"></div><div class="rp-bar"></div>';
+function makeSaver(kind) {
+  const st = { timer: 0, busy: false, again: false };
+  const dot = () => $(kind === 'plan' ? '#planDot' : '#propDot');
+  const txt = () => $(kind === 'plan' ? '#planStatus' : '#propStatus');
+  function show(cls, msg) { dot().className = 'dot ' + cls; txt().textContent = msg; }
+  async function run() {
+    clearTimeout(st.timer);
+    if (st.busy) { st.again = true; return st.pending; }
+    st.busy = true;
+    show('busy', 'กำลังบันทึก…');
+    st.pending = (async () => {
+      try {
+        if (kind === 'plan') await doSavePlan(); else await doSaveProp();
+        const t = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        show('ok', 'บันทึกแล้ว ' + t + ' น.');
+        return true;
+      } catch (e) {
+        if (e && e.skip) { show('', e.message); return false; }
+        show('err', 'บันทึกไม่สำเร็จ – ' + errMsg(e)); return false;
+      } finally {
+        st.busy = false;
+        if (st.again) { st.again = false; run(); }
+      }
+    })();
+    return st.pending;
+  }
+  return {
+    soon() { if (!S.ready) return; show('busy', 'มีการแก้ไข…'); clearTimeout(st.timer); st.timer = setTimeout(run, 1200); },
+    now: run,
+    reset(msg) { clearTimeout(st.timer); show(msg ? 'ok' : '', msg || 'ยังไม่ได้บันทึก'); }
+  };
 }
-function rpInfo(list) {
-  return '<div class="rp-info">' + list.map(x => '<div class="' + (x[2] || '') + '"><small>' + x[0] + '</small><b>' + (x[1] ? esc(x[1]) : '<span style="color:#b8bfd6">—</span>') + '</b></div>').join('') + '</div>';
+const planSaver = makeSaver('plan');
+const propSaver = makeSaver('prop');
+function skip(msg) { const e = new Error(msg); e.skip = true; return e; }
+
+/* =========================================================
+ *  แผน 8 คาบ
+ * ========================================================= */
+function newPlan() {
+  const pf = profile();
+  S.plan = { id: '', teacher: pf.teacher || AUTH.name, originSchool: (S.init && S.init.originSchool) || '', originSubject: pf.originSubject || '',
+    destSubject: pf.destSubject || '', destSchool: pf.destSchool || '', affiliation: pf.affiliation || '', district: pf.district || '',
+    province: pf.province || '', startDate: '', endDate: '', note: '', items: [] };
+  S.step = 1; S.edit = -1;
+  fillPlanForm();
+  planSaver.reset();
 }
-function rpSign(left, right) {
-  return '<div class="rp-sign"><div><div class="ln"></div>(' + esc(left[0] || '..................................................') + ')<br><small>' + left[1] + '</small></div>' +
-    '<div><div class="ln"></div>(..................................................)<br><small>' + right + '</small></div></div>';
+function normalizePlan(p) {
+  p.items = (p.items || []).map(i => Object.assign({}, i, { pattern: patOf(i) }));
+  return p;
 }
-function rpFoot(id) {
-  const n = new Date();
-  return '<div class="rp-foot"><span>ระบบบันทึกงานครูต้นทาง DLTV' + (id ? ' · รหัส ' + esc(id) : '') + '</span><span>พิมพ์เมื่อ ' +
-    n.getDate() + ' ' + TH_M[n.getMonth()] + ' ' + (n.getFullYear() + 543) + ' ' + String(n.getHours()).padStart(2, '0') + '.' + String(n.getMinutes()).padStart(2, '0') + ' น.</span></div>';
+async function openPlan(id, step) {
+  loading(true);
+  try {
+    S.plan = normalizePlan(await api('getPlan', id));
+    S.step = step || (S.plan.startDate && S.plan.destSchool ? 2 : 1); S.edit = -1;
+    fillPlanForm();
+    planSaver.reset('บันทึกล่าสุด ' + since(S.plan.updated));
+    go('plan');
+  } catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
+}
+function fillPlanForm() {
+  PLAN_F.forEach(k => { const el = $('#pl-' + k); if (el) { setV(el, S.plan[k] || ''); el.classList.remove('err'); } });
+}
+function readPlanForm() { PLAN_F.forEach(k => { const el = $('#pl-' + k); if (el) S.plan[k] = getV(el); }); }
+
+function validStep1(showErr) {
+  readPlanForm();
+  const need = ['teacher', 'destSchool', 'startDate', 'endDate'];
+  let ok = true;
+  need.forEach(k => { const bad = !S.plan[k]; if (showErr) $('#pl-' + k).classList.toggle('err', bad); ok = ok && !bad; });
+  if (ok && S.plan.endDate < S.plan.startDate) { if (showErr) { $('#pl-endDate').classList.add('err'); toast('วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม', 'bad'); } return false; }
+  return ok;
+}
+
+async function doSavePlan() {
+  readPlanForm();
+  if (!S.plan.teacher || !S.plan.destSchool) throw skip('กรอกชื่อครูและโรงเรียนปลายทางก่อน ระบบจึงจะบันทึกให้');
+  const p = Object.assign({}, S.plan, { items: sortItems(S.plan.items).map(i => Object.assign({}, i, { task: isTeach(i) ? PAT_TASK[i.pattern] || '' : '' })) });
+  const r = await api('savePlan', p);
+  S.plan.id = r.id;
+  rememberLocal(S.plan);
+  store.del(dk('planDraft'));
+}
+function planChanged() { store.set(dk('planDraft'), S.plan); planSaver.soon(); }
+
+/* ---------- วันในตาราง ---------- */
+function planDays() {
+  const out = new Set();
+  const s = parseD(S.plan.startDate), e = parseD(S.plan.endDate);
+  if (s && e && e >= s) {
+    for (let d = new Date(s), n = 0; d <= e && n < 31; d.setDate(d.getDate() + 1), n++) {
+      const k = iso(d), wd = d.getDay();
+      if (wd !== 0 && wd !== 6) out.add(k);
+    }
+  }
+  S.plan.items.forEach(i => { if (i.date) out.add(i.date); });
+  return Array.from(out).sort();
+}
+
+function renderPlan() {
+  if (!S.plan) return;
+  // stepper
+  const done1 = validStep1(false), n = teachItems(S.plan).length, t = TARGET();
+  $$('#stepper button').forEach(b => {
+    const k = +b.dataset.step;
+    b.className = k === S.step ? 'cur' : (k === 1 && done1) || (k === 2 && n >= t) ? 'done' : '';
+    $('small', b).textContent = k === S.step ? 'กำลังทำ' : k === 1 ? (done1 ? 'เสร็จแล้ว' : 'ยังไม่ครบ') : k === 2 ? (n + ' จาก ' + t + ' คาบ') : 'ขั้นสุดท้าย';
+    if (b.className === 'done') $('.n', b).innerHTML = '<svg class="ico" style="width:18px;height:18px;stroke-width:3"><use href="#i-check"/></svg>';
+    else $('.n', b).textContent = k;
+  });
+  ['#st1', '#st2', '#st3'].forEach((id, i) => $(id).classList.toggle('hide', S.step !== i + 1));
+  $('#btnBack').classList.toggle('hide', S.step === 1);
+  $('#btnPrintPlan').classList.toggle('hide', S.step !== 3);
+  const nx = $('#btnNext');
+  nx.innerHTML = S.step === 1 ? 'ถัดไป: เลือกคาบสอน <svg class="ico"><use href="#i-arrow"/></svg>'
+    : S.step === 2 ? 'ถัดไป: ตรวจและพิมพ์ <svg class="ico"><use href="#i-arrow"/></svg>'
+    : 'ไปเขียนข้อเสนอ <svg class="ico"><use href="#i-arrow"/></svg>';
+  nx.className = S.step === 3 ? 'btn gold big' : 'btn pri big';
+  if (S.step === 2) renderWeek();
+  if (S.step === 3) renderReview();
+}
+
+function renderWeek() {
+  const p = S.plan, t = TARGET();
+  $('#planStrip').innerHTML = '<b>' + esc(p.destSchool || '-') + '</b>' + (p.affiliation ? ' · ' + esc(p.affiliation) : '') + ' · ' + esc(thRangeDates(p.startDate, p.endDate));
+  const n = teachItems(p).length;
+  $('#wkCount').textContent = n;
+  $('#wkBar').classList.toggle('full', n >= t);
+  $('#wkBar i').style.width = Math.min(100, n / t * 100) + '%';
+  const days = planDays();
+  const box = $('#days');
+  box.style.gridTemplateColumns = 'repeat(' + Math.max(1, days.length) + ', minmax(120px, 1fr))';
+  box.style.minWidth = Math.max(300, days.length * 130) + 'px';
+  if (!days.length) { box.innerHTML = '<div class="empty">กำหนดวันที่ไปในขั้นที่ 1 ก่อน</div>'; return; }
+  box.innerHTML = days.map(d => {
+    const dt = parseD(d), we = dt.getDay() === 0 || dt.getDay() === 6;
+    const its = p.items.map((it, idx) => ({ it, idx })).filter(x => x.it.date === d).sort((a, b) => (a.it.start || '').localeCompare(b.it.start || ''));
+    const cards = its.map(({ it, idx }) => {
+      const sel = idx === S.edit ? ' sel' : '';
+      if (!isTeach(it)) return '<button type="button" class="pc o' + sel + '" data-i="' + idx + '"><b>' + esc(thShort(it.start, it.end) || '—') + '</b>' + esc(it.detail || it.type) + '</button>';
+      const pt = it.pattern || '0';
+      return '<button type="button" class="pc p' + pt + sel + '" data-i="' + idx + '"><b>' + esc(thShort(it.start, it.end) || '—') + '</b>' + esc([it.grade, it.subject].filter(Boolean).join(' ')) +
+        (it.pattern ? '<br><span class="tag p' + pt + '">แบบที่ ' + pt + '</span>' : '<br><span style="font-size:12.5px;color:var(--bad)">ยังไม่เลือกแบบ</span>') + '</button>';
+    }).join('');
+    return '<div class="day"><div class="day-h' + (we ? ' we' : '') + '"><b>' + TH_DAY[dt.getDay()] + '</b><br><span>' + dt.getDate() + ' ' + TH_M[dt.getMonth()] + '</span></div>' + cards +
+      '<button type="button" class="add-day" data-add="' + d + '">+ เพิ่มคาบ</button></div>';
+  }).join('');
+  renderPanel();
+}
+
+/* ---------- แผงเพิ่ม/แก้ไขคาบ ---------- */
+function panelGrade() { const b = $('#pnGrades button[aria-pressed="true"]'); return b ? b.dataset.v : ''; }
+function setPanelGrade(g) { $$('#pnGrades button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === g))); }
+function setPanelMode(m) {
+  S.panelMode = m;
+  $('#pnTeach').classList.toggle('hide', m !== 'teach');
+  $('#pnOther').classList.toggle('hide', m === 'teach');
+  $('#pnMode').textContent = m === 'teach' ? '+ เพิ่มการเดินทาง / ประชุม (ไม่นับเป็นคาบสอน)' : '← กลับไปเพิ่มคาบสอน';
+  $('#pnMode').classList.toggle('hide', S.edit >= 0);
+}
+function renderPanel() {
+  const days = planDays();
+  const cur = $('#pnDay').value;
+  $('#pnDay').innerHTML = days.map(d => '<option value="' + d + '">' + esc(TH_DAY[parseD(d).getDay()] + ' ' + thDate(d, 1)) + '</option>').join('');
+  if (cur && days.includes(cur)) $('#pnDay').value = cur;
+  const editing = S.edit >= 0 && S.plan.items[S.edit];
+  $('#pnTitle').textContent = editing ? (isTeach(editing) ? 'แก้ไขคาบสอน' : 'แก้ไขกิจกรรม') : (S.panelMode === 'teach' ? 'เพิ่มคาบสอน' : 'เพิ่มการเดินทาง / ประชุม');
+  $('#pnSave').textContent = editing ? 'บันทึกการแก้ไข' : 'เพิ่มลงตาราง';
+  $('#pnDel').classList.toggle('hide', !editing);
+  $('#pnCancel').classList.toggle('hide', !editing);
+  $('#panel').style.borderColor = editing ? 'var(--gold)' : '';
+  if (!$('#pnSubject').value) $('#pnSubject').value = firstWord(S.plan.destSubject || S.plan.originSubject);
+}
+function clearPanel(keepDay) {
+  const d = $('#pnDay').value;
+  S.edit = -1;
+  if (!keepDay) $('#pnDay').selectedIndex = 0; else $('#pnDay').value = d;
+  $$('input[name=pnPat]').forEach(r => r.checked = false);
+  $('#pnDetail').value = '';
+  setPanelMode('teach');
+  renderWeek();
+}
+function editItem(idx) {
+  const it = S.plan.items[idx]; if (!it) return;
+  S.edit = idx;
+  setPanelMode(isTeach(it) ? 'teach' : 'other');
+  renderWeek();
+  $('#pnDay').value = it.date;
+  $('#pnStart').value = it.start || ''; $('#pnEnd').value = it.end || '';
+  if (isTeach(it)) {
+    setPanelGrade(it.grade || '');
+    $('#pnSubject').value = it.subject || '';
+    $$('input[name=pnPat]').forEach(r => r.checked = r.value === it.pattern);
+  } else {
+    $('#pnType').value = it.type || 'เดินทาง';
+    $('#pnDetail').value = it.detail || '';
+  }
+  $('#panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function savePanel() {
+  const date = $('#pnDay').value, start = normTime($('#pnStart').value), end = normTime($('#pnEnd').value);
+  if (!date) { toast('เลือกวันก่อน', 'bad'); return; }
+  if (!start) { $('#pnStart').classList.add('err'); toast('ใส่เวลาเริ่มก่อน', 'bad'); return; }
+  $('#pnStart').classList.remove('err');
+  let item;
+  if (S.panelMode === 'teach') {
+    const grade = panelGrade(), pr = $('input[name=pnPat]:checked');
+    if (!grade) { toast('เลือกชั้นก่อน', 'bad'); return; }
+    if (!pr) { toast('เลือกว่าจะไปทำอะไรในคาบนี้ (แบบที่ 1, 2 หรือ 3)', 'bad'); return; }
+    item = { type: 'เข้าสอน', date, start, end, grade, subject: $('#pnSubject').value.trim(), pattern: pr.value, period: '', detail: '' };
+  } else {
+    item = { type: $('#pnType').value, date, start, end, grade: '', subject: '', pattern: '', period: '', detail: $('#pnDetail').value.trim() };
+  }
+  const was = S.edit >= 0;
+  if (was) S.plan.items[S.edit] = Object.assign({}, S.plan.items[S.edit], item);
+  else S.plan.items.push(item);
+  planChanged();
+  const n = teachItems(S.plan).length;
+  if (was) toast('แก้ไขแล้ว');
+  else if (S.panelMode === 'teach' && n === TARGET()) toast('ครบ ' + n + ' คาบแล้ว กด “ถัดไป” เพื่อตรวจและพิมพ์');
+  // เตรียมคาบถัดไป: วันเดิม เริ่มเวลาที่จบ
+  $('#pnStart').value = end || ''; $('#pnEnd').value = end ? addHour(end) : '';
+  clearPanel(true);
+  renderPlan();
+}
+async function deletePanelItem() {
+  if (S.edit < 0) return;
+  if (!await confirmBox('ลบรายการนี้?', 'รายการนี้จะถูกลบออกจากตาราง', 'ลบ')) return;
+  S.plan.items.splice(S.edit, 1);
+  planChanged();
+  clearPanel(true);
+  renderPlan();
+}
+
+/* ---------- ขั้นที่ 3: ตรวจ ---------- */
+function renderReview() {
+  const p = S.plan, n = teachItems(p).length, t = TARGET();
+  const noPat = teachItems(p).filter(i => !i.pattern).length;
+  const checks = [];
+  checks.push(n >= t ? ['ok', 'มีคาบสอนครบ ' + n + ' คาบ'] : ['warn', 'มีคาบสอน ' + n + ' คาบ ยังขาดอีก ' + (t - n) + ' คาบ (บันทึกและพิมพ์ได้ แต่ควรเพิ่มให้ครบ)']);
+  if (noPat) checks.push(['warn', 'มี ' + noPat + ' คาบที่ยังไม่ได้เลือกว่าจะไปทำอะไร (แบบที่ 1–3)']);
+  if (!p.affiliation) checks.push(['warn', 'ยังไม่ได้ใส่สังกัดของโรงเรียนปลายทาง']);
+  $('#checks').innerHTML = checks.map(c => '<div class="check ' + c[0] + '"><svg class="ico"><use href="#' + (c[0] === 'ok' ? 'i-check' : 'i-alert') + '"/></svg>' + esc(c[1]) + '</div>').join('');
+  $('#planPreview').innerHTML = planDoc(p);
+}
+
+/* ---------- ปุ่มด้านล่าง ---------- */
+function stepTo(k) {
+  if (k > 1 && !validStep1(true)) { toast('กรอกช่องที่มีเครื่องหมาย * ให้ครบก่อน', 'bad'); S.step = 1; renderPlan(); return; }
+  S.step = k; S.edit = -1;
+  if (k === 2 && !$('#pnSubject').value) $('#pnSubject').value = firstWord(S.plan.destSubject || S.plan.originSubject);
+  renderPlan();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (k > 1) planSaver.now();
+}
+async function nextFromPlan() {
+  if (S.step < 3) return stepTo(S.step + 1);
+  await planSaver.now();
+  if (!S.plan.id) return;
+  await loadRecords();
+  openProposalForPlan(S.plan.id);
+}
+
+/* =========================================================
+ *  ข้อเสนอปรับปรุงเทป
+ * ========================================================= */
+function slotKey(date, time) { return (date || '') + '|' + String(time || '').replace(/[^0-9]/g, ''); }
+function written(it) { return !!(it && (it.problem || it.before || it.after || it.cause)); }
+
+async function openProposalPage() {
+  if (!S.records.length) await loadRecords();
+  const plans = S.records.filter(r => r.kind === 'plan');
+  const id = (S.plan && S.plan.id) || (S.prop && S.prop.planId) || (plans[0] && plans[0].id) || '';
+  if (S.prop && S.prop.planId === id && S.propPlan && S.propPlan.id === id) { renderProposal(); return; }
+  if (!id) { $('#prNoPlan').classList.remove('hide'); $('#prMain').classList.add('hide'); return; }
+  openProposalForPlan(id);
+}
+async function openProposalForPlan(planId, propId) {
+  loading(true);
+  try {
+    const plan = normalizePlan(await api('getPlan', planId));
+    S.propPlan = plan;
+    const rec = propId ? { id: propId } : S.records.find(r => r.kind === 'proposal' && r.planId === planId);
+    if (rec) S.prop = await api('getProposal', rec.id);
+    else S.prop = { id: '', planId, teacher: plan.teacher, destSchool: plan.destSchool, affiliation: plan.affiliation, destSubject: firstWord(plan.destSubject) || plan.destSubject, items: [] };
+    S.prop.planId = planId;
+    S.sel = '';
+    propSaver.reset(S.prop.updated ? 'บันทึกล่าสุด ' + since(S.prop.updated) : '');
+    if (page !== 'proposal') { page = 'proposal'; $$('.page').forEach(x => x.classList.toggle('on', x.id === 'pg-proposal')); $$('.nav [data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === 'proposal')); window.scrollTo({ top: 0 }); }
+    renderProposal();
+  } catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
+}
+async function openOrphanProposal(id) {
+  loading(true);
+  try {
+    S.propPlan = null; S.prop = await api('getProposal', id); S.sel = '';
+    propSaver.reset('บันทึกล่าสุด ' + since(S.prop.updated));
+    page = 'proposal'; $$('.page').forEach(x => x.classList.toggle('on', x.id === 'pg-proposal'));
+    $$('.nav [data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === 'proposal'));
+    renderProposal();
+  } catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
+}
+
+/** รายการคาบให้เลือก: คาบสอนในแผน + ข้อเสนอเดิมที่ไม่ตรงกับคาบใด */
+function periodList() {
+  const out = [], used = new Set();
+  const items = (S.prop && S.prop.items) || [];
+  sortItems(teachItems(S.propPlan)).forEach(i => {
+    const key = slotKey(i.date, thShort(i.start, i.end));
+    const pi = items.find(x => slotKey(x.date, x.time) === key);
+    if (pi) used.add(pi);
+    out.push({ key, date: i.date, time: thShort(i.start, i.end), grade: i.grade, subject: i.subject, mode: i.pattern === '3' ? 'สอนสด' : 'เปิดเทป', item: pi });
+  });
+  items.forEach((x, n) => { if (!used.has(x)) out.push({ key: slotKey(x.date, x.time) + '#' + n, date: x.date, time: x.time, grade: x.grade, mode: x.mode, item: x }); });
+  return out;
+}
+function renderProposal() {
+  $('#prNoPlan').classList.add('hide'); $('#prMain').classList.remove('hide');
+  const plans = S.records.filter(r => r.kind === 'plan');
+  const pid = S.prop && S.prop.planId;
+  $('#prPlan').innerHTML = (pid && !plans.some(p => p.id === pid) ? '<option value="' + esc(pid) + '">แผนรหัส ' + esc(pid) + '</option>' : '') + (!pid ? '<option value="">— ข้อเสนอที่ไม่ผูกกับแผน —</option>' : '') +
+    plans.map(p => '<option value="' + esc(p.id) + '">' + esc((S.init && S.init.isAdmin ? p.teacher + ' · ' : '') + thRangeDates(p.startDate, p.endDate) + ' · ' + (p.school || '-')) + '</option>').join('');
+  $('#prPlan').value = pid || '';
+  const list = periodList();
+  if (!list.length) {
+    $('#periods').innerHTML = '<div class="empty" style="grid-column:1/-1">แผนนี้ยังไม่มีคาบสอน <button type="button" class="btn line sm" id="goPlanFromProp">ไปเพิ่มคาบสอนในแผน</button></div>';
+    $('#qcard').classList.add('hide'); return;
+  }
+  $('#qcard').classList.remove('hide');
+  if (!S.sel || !list.some(x => x.key === S.sel)) { const f = list.find(x => !written(x.item)) || list[0]; S.sel = f.key; }
+  $('#periods').innerHTML = list.map(x => {
+    const d = parseD(x.date), done = written(x.item), sel = x.key === S.sel;
+    const st = sel ? 'กำลังเขียน' : done ? 'เขียนแล้ว' : 'ยังไม่เขียน';
+    return '<button type="button" class="per' + (done ? ' done' : '') + (sel ? ' sel' : '') + '" data-key="' + esc(x.key) + '"><span class="s">' + st + '</span><br><b>' +
+      esc(d ? TH_D[d.getDay()] + ' ' + d.getDate() + ' ' + TH_M[d.getMonth()] : 'ไม่ระบุวัน') + '</b><br><span>' + esc([String(x.time || '').split('–')[0].replace(' น.', ''), x.grade].filter(Boolean).join(' · ')) + '</span></button>';
+  }).join('');
+  const cur = list.find(x => x.key === S.sel);
+  const it = cur.item || {};
+  const d = parseD(cur.date);
+  $('#qMeta').textContent = [d ? TH_DAY[d.getDay()] + ' ' + thDate(cur.date, 1) : '', cur.time, [cur.grade, cur.subject].filter(Boolean).join(' '), cur.mode].filter(Boolean).join(' · ');
+  $$('[data-q]').forEach(f => { f.value = it[f.dataset.q] || ''; });
+  const remaining = list.filter(x => !written(x.item) && x.key !== S.sel).length;
+  $('#btnNextPeriod').innerHTML = remaining ? 'บันทึก แล้วไปคาบถัดไป <svg class="ico"><use href="#i-arrow"/></svg>' : 'บันทึก <svg class="ico"><use href="#i-check"/></svg>';
+}
+function currentSlot() { return periodList().find(x => x.key === S.sel); }
+function onQuestionInput(e) {
+  const f = e.target.closest('[data-q]'); if (!f) return;
+  const cur = currentSlot(); if (!cur) return;
+  let it = cur.item;
+  if (!it) { it = { date: cur.date, time: cur.time, grade: cur.grade, mode: cur.mode }; S.prop.items.push(it); }
+  it[f.dataset.q] = f.value;
+  // อัปเดตสถานะบนการ์ดโดยไม่วาดใหม่ทั้งหมด (ไม่ให้เคอร์เซอร์หลุด)
+  const card = $('#periods .per.sel'); if (card) card.classList.toggle('done', written(it));
+  store.set(dk('propDraft'), S.prop);
+  propSaver.soon();
+}
+async function doSaveProp() {
+  const p = S.prop;
+  if (S.propPlan) { p.teacher = p.teacher || S.propPlan.teacher; p.destSchool = p.destSchool || S.propPlan.destSchool; p.affiliation = p.affiliation || S.propPlan.affiliation; }
+  if (!p.teacher || !p.destSchool) throw skip('ข้อมูลครู/โรงเรียนไม่ครบ');
+  const items = sortItems(p.items.filter(i => i.problem || i.cause || i.before || i.after || i.topic || i.tape));
+  if (!items.length) throw skip('ยังไม่มีข้อเสนอที่ต้องบันทึก');
+  const r = await api('saveProposal', Object.assign({}, p, { items }));
+  p.id = r.id;
+  store.del(dk('propDraft'));
+}
+async function nextPeriod() {
+  await propSaver.now();
+  const list = periodList();
+  const idx = list.findIndex(x => x.key === S.sel);
+  const nx = list.slice(idx + 1).concat(list.slice(0, idx)).find(x => !written(x.item));
+  if (nx) { S.sel = nx.key; renderProposal(); $('#qcard').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('[data-q=tape]').focus({ preventScroll: true }); }
+  else { renderProposal(); toast('เขียนข้อเสนอครบทุกคาบแล้ว'); }
+}
+
+/* =========================================================
+ *  หน้าแรก
+ * ========================================================= */
+let loadingRecs = null;
+function loadRecords() {
+  if (loadingRecs) return loadingRecs;
+  loadingRecs = (async () => {
+    try { const r = await api('listRecords'); S.records = r.records; renderHome(); }
+    catch (e) { toast(errMsg(e), 'bad'); $('#recList').innerHTML = '<div class="empty">' + esc(errMsg(e)) + '</div>'; }
+    finally { loadingRecs = null; }
+  })();
+  return loadingRecs;
+}
+function propOf(planId) { return S.records.find(r => r.kind === 'proposal' && r.planId === planId); }
+function renderHome() {
+  const t = TARGET();
+  const mine = S.records.filter(r => r.kind === 'plan' && r.email === AUTH.email);
+  const cur = mine[0] || null;
+  const n = cur ? cur.periods : 0;
+  $('#h1Count').textContent = n + ' จาก ' + t + ' คาบ';
+  $('#h1Bar').style.width = Math.min(100, n / t * 100) + '%';
+  $('#h1Hint').textContent = !cur ? 'ยังไม่ได้เริ่มวางแผน' : n >= t ? 'ครบแล้ว · ' + thRangeDates(cur.startDate, cur.endDate) : 'ขาดอีก ' + (t - n) + ' คาบ · ' + thRangeDates(cur.startDate, cur.endDate);
+  $('#h1Hint').classList.toggle('ok', !!cur && n >= t);
+  $('#h1Btn').innerHTML = (!cur ? 'เริ่มวางแผน' : n >= t ? 'ดูแผน / พิมพ์' : 'วางแผนต่อ') + ' <svg class="ico"><use href="#i-arrow"/></svg>';
+  $('#h1Btn').onclick = () => cur ? openPlan(cur.id, n >= t ? 3 : 2) : (newPlan(), go('plan'));
+  const pr = cur && propOf(cur.id), w = pr ? pr.count : 0;
+  $('#h2Count').textContent = w + ' จาก ' + n + ' คาบที่สอน';
+  $('#h2Bar').style.width = n ? Math.min(100, w / n * 100) + '%' : '0';
+  $('#h2Hint').textContent = !cur ? 'วางแผนขั้นที่ 1 ก่อน' : !n ? 'เพิ่มคาบสอนในแผนก่อน' : w >= n ? 'เขียนครบทุกคาบแล้ว' : 'เหลืออีก ' + (n - w) + ' คาบที่ยังไม่ได้เขียน';
+  $('#h2Hint').classList.toggle('ok', !!n && w >= n);
+  $('#h2Btn').onclick = () => cur ? openProposalForPlan(cur.id) : go('proposal');
+  $('#h2Btn').disabled = !cur;
+  $('#q').classList.toggle('hide', !(S.init && S.init.isAdmin));
+  renderRecList();
+}
+function renderRecList() {
+  const q = $('#q').value.trim().toLowerCase();
+  const admin = S.init && S.init.isAdmin;
+  const plans = S.records.filter(r => r.kind === 'plan');
+  const linked = new Set(plans.map(p => p.id));
+  const orphans = S.records.filter(r => r.kind === 'proposal' && !linked.has(r.planId));
+  const match = r => !q || [r.teacher, r.school, r.affiliation, r.subject].join(' ').toLowerCase().includes(q);
+  const t = TARGET();
+  const rows = plans.filter(match).map(p => {
+    const pr = propOf(p.id), w = pr ? pr.count : 0;
+    return '<div class="row"><div class="t"><b>' + (admin ? esc(p.teacher) + ' · ' : '') + 'แผนการสอน · ' + esc(p.school || '-') + '</b><span>' + esc(thRangeDates(p.startDate, p.endDate) || 'ยังไม่กำหนดวันที่') + (p.affiliation ? ' · ' + esc(p.affiliation) : '') + '</span></div>' +
+      '<span class="badge ' + (p.periods >= t ? 'ok' : 'warn') + '">คาบสอน ' + p.periods + '/' + t + '</span>' +
+      '<span class="badge ' + (p.periods && w >= p.periods ? 'ok' : w ? 'info' : 'warn') + '">ข้อเสนอ ' + w + '/' + p.periods + '</span>' +
+      '<button type="button" class="btn line sm" data-act="plan" data-id="' + esc(p.id) + '">แผน</button>' +
+      '<button type="button" class="btn line sm" data-act="prop" data-id="' + esc(p.id) + '">ข้อเสนอ</button>' +
+      '<button type="button" class="btn ghost sm" data-act="print" data-id="' + esc(p.id) + '"><svg class="ico"><use href="#i-print"/></svg>พิมพ์</button>' +
+      '<button type="button" class="btn danger sm" data-act="del" data-id="' + esc(p.id) + '" aria-label="ลบแผนนี้"><svg class="ico"><use href="#i-trash"/></svg></button></div>';
+  }).concat(orphans.filter(match).map(r => '<div class="row"><div class="t"><b>' + (admin ? esc(r.teacher) + ' · ' : '') + 'ข้อเสนอปรับปรุงเทป · ' + esc(r.school || '-') + '</b><span>' + esc(r.subject || '') + ' · ' + r.count + ' ข้อ (ไม่ผูกกับแผน)</span></div>' +
+    '<button type="button" class="btn line sm" data-act="oprop" data-id="' + esc(r.id) + '">เปิด</button>' +
+    '<button type="button" class="btn ghost sm" data-act="oprint" data-id="' + esc(r.id) + '"><svg class="ico"><use href="#i-print"/></svg>พิมพ์</button>' +
+    '<button type="button" class="btn danger sm" data-act="odel" data-id="' + esc(r.id) + '" aria-label="ลบข้อเสนอนี้"><svg class="ico"><use href="#i-trash"/></svg></button></div>'));
+  $('#recList').innerHTML = rows.join('') || '<div class="empty">ยังไม่มีงานที่บันทึกไว้ เริ่มจาก “ขั้นที่ 1 วางแผนการสอน” ได้เลย</div>';
+}
+async function onRecAction(e) {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.dataset.id, a = b.dataset.act;
+  if (a === 'plan') return openPlan(id);
+  if (a === 'prop') return openProposalForPlan(id);
+  if (a === 'oprop') return openOrphanProposal(id);
+  if (a === 'print') return choosePrint(id);
+  if (a === 'oprint') { loading(true); try { doPrint(propDoc(await api('getProposal', id))); } catch (er) { toast(errMsg(er), 'bad'); } finally { loading(false); } return; }
+  if (a === 'del' || a === 'odel') {
+    const isPlan = a === 'del', pr = isPlan && propOf(id);
+    if (!await confirmBox(isPlan ? 'ลบแผนนี้?' : 'ลบข้อเสนอนี้?', isPlan ? 'แผน' + (pr ? 'และข้อเสนอที่ผูกอยู่' : '') + 'จะถูกลบถาวร กู้คืนไม่ได้' : 'ข้อเสนอนี้จะถูกลบถาวร กู้คืนไม่ได้', 'ลบถาวร')) return;
+    loading(true);
+    try {
+      await api('deleteRecord', isPlan ? 'plan' : 'proposal', id);
+      if (pr) await api('deleteRecord', 'proposal', pr.id);
+      if (S.plan && S.plan.id === id) S.plan = null;
+      if (S.prop && (S.prop.planId === id || S.prop.id === id)) { S.prop = null; S.propPlan = null; }
+      toast('ลบแล้ว'); await loadRecords();
+    } catch (er) { toast(errMsg(er), 'bad'); } finally { loading(false); }
+  }
+}
+async function choosePrint(planId) {
+  const pr = propOf(planId);
+  let which = 'plan';
+  if (pr) {
+    $('#mNo').textContent = 'พิมพ์ข้อเสนอ';
+    which = await confirmBox('พิมพ์เอกสารไหน?', 'เลือกเอกสารที่ต้องการพิมพ์หรือบันทึกเป็น PDF', 'พิมพ์แผนการสอน') ? 'plan' : 'prop';
+    $('#mNo').textContent = 'ยกเลิก';
+  }
+  loading(true);
+  try {
+    if (which === 'plan') doPrint(planDoc(normalizePlan(await api('getPlan', planId))));
+    else doPrint(propDoc(await api('getProposal', pr.id), normalizePlan(await api('getPlan', planId))));
+  } catch (e) { toast(errMsg(e), 'bad'); } finally { loading(false); }
+}
+
+/* =========================================================
+ *  เอกสาร A4
+ * ========================================================= */
+function docHead(title) {
+  return '<div class="doc-h"><img class="l1" src="assets/img/logo-foundation.png" alt=""><div class="c"><h1>' + title + '</h1><div>' + BAR + '</div></div><img class="l2" src="assets/img/logo-dltv.png" alt=""></div>';
+}
+function info(label, v, wide) { return '<div' + (wide ? ' class="w"' : '') + '><b>' + label + ':</b> ' + (v ? esc(v) : '<span style="color:#9ca3af">—</span>') + '</div>'; }
+function sign(name, role) { return '<div class="sign"><div>ลงชื่อ ....................................................<br>(' + esc(name || '....................................................') + ')<br>' + role + '</div></div>'; }
+function planDoc(p) {
+  const t = TARGET();
+  const items = sortItems((p.items || []).filter(i => i.date || i.start || i.detail || i.grade));
+  const days = [];
+  items.forEach(i => { const last = days[days.length - 1]; if (last && last.date === i.date) last.items.push(i); else days.push({ date: i.date, items: [i] }); });
+  let body = '';
+  days.forEach((d, di) => {
+    const dt = parseD(d.date), alt = di % 2 ? ' class="alt"' : '';
+    d.items.forEach((i, k) => {
+      const teach = isTeach(i);
+      body += '<tr' + alt + '>' + (k === 0 ? '<td rowspan="' + d.items.length + '"><b>' + (dt ? TH_DAY[dt.getDay()] : 'ไม่ระบุวัน') + '</b>' + (dt ? '<br>' + thDate(d.date) : '') + '</td>' : '') +
+        '<td class="t">' + esc(thShort(i.start, i.end) || '—') + '</td>' +
+        (teach ? '<td>' + esc([i.grade, i.subject].filter(Boolean).join(' ') || '—') + '</td><td>' + esc(PAT_NAME[i.pattern] || '—') + '</td><td class="c">' + esc(i.pattern || '–') + '</td>'
+          : '<td class="m">–</td><td class="m">' + esc(i.detail || i.type) + '</td><td class="c m">–</td>') + '</tr>';
+    });
+  });
+  const teach = teachItems({ items }), cnt = k => teach.filter(i => i.pattern === k).length;
+  body += '<tr class="sum"><td colspan="5">รวมคาบสอน ' + teach.length + ' คาบ' + (teach.length < t ? ' (เป้าหมาย ' + t + ' คาบ)' : '') + ' — แบบที่ 1: ' + cnt('1') + ' คาบ · แบบที่ 2: ' + cnt('2') + ' คาบ · แบบที่ 3: ' + cnt('3') + ' คาบ</td></tr>';
+  const place = [p.district, p.province].filter(Boolean).join(' ');
+  return '<div class="doc">' + docHead('แผนการสอน ณ โรงเรียนปลายทาง (' + t + ' คาบ/สัปดาห์)') +
+    '<div class="doc-info">' + info('ครูต้นทาง', p.teacher) + info('สอนที่โรงเรียนต้นทาง', [p.originSubject, p.originSchool && p.originSchool !== (S.init && S.init.originSchool) ? p.originSchool : ''].filter(Boolean).join(' · ')) +
+    info('โรงเรียนปลายทาง', p.destSchool) + info('สังกัด', p.affiliation) + info('อำเภอ/จังหวัด', place) + info('ช่วงวันที่', thRangeDates(p.startDate, p.endDate)) +
+    info('วิชาที่สอนที่โรงเรียนปลายทาง', p.destSubject, true) + '</div>' +
+    (items.length ? '<table><thead><tr><th style="width:17%">วัน</th><th style="width:19%">เวลา</th><th style="width:17%">ชั้น / วิชา</th><th>ไปทำอะไร</th><th style="width:9%;text-align:center">แบบที่</th></tr></thead><tbody>' + body + '</tbody></table>'
+      : '<div class="none">ยังไม่มีคาบสอนในแผน</div>') +
+    '<div class="legend-box"><b>ความหมายของ “แบบที่”</b><br><b>1</b> = เปิดเทป แล้วดูว่านักเรียนปลายทางเข้าใจเนื้อหาไหม &nbsp;·&nbsp; <b>2</b> = เปิดเทป แล้วดูครูปลายทางกำกับห้องเรียน &nbsp;·&nbsp; <b>3</b> = สอนนักเรียนปลายทางเองจริง</div>' +
+    (p.note ? '<div><b>หมายเหตุ:</b> ' + nl(p.note) + '</div>' : '') +
+    sign(p.teacher, 'ครูต้นทาง') + '</div>';
+}
+function propDoc(p, plan) {
+  const items = sortItems((p.items || []).filter(i => i.problem || i.cause || i.before || i.after || i.topic || i.tape));
+  const subj = p.destSubject || (plan && plan.destSubject) || '';
+  const issues = items.map((i, n) => {
+    const d = parseD(i.date);
+    const head = 'ข้อที่ ' + (n + 1) + (i.tape ? ' · เทปที่ ' + esc(i.tape) : '') + (i.minute ? ' นาทีที่ ' + esc(i.minute) : '') + (i.topic ? ' — ' + esc(i.topic) : '');
+    const when = [d ? TH_DAY[d.getDay()] + ' ' + thDate(i.date) : '', i.time, i.grade, i.mode].filter(Boolean).join(' · ');
+    const row = (lb, v, cls) => '<tr><th' + (cls ? ' class="' + cls + '"' : '') + '>' + lb + '</th><td' + (cls === 'n' ? ' class="n"' : '') + '>' + (v ? nl(v) : '<span style="color:#9ca3af">—</span>') + '</td></tr>';
+    return '<table class="issue"><caption>' + head + '</caption><tbody>' + row('คาบที่สอน', when) + row('นักเรียนไม่เข้าใจตรงไหน', i.problem) + row('เพราะอะไร', i.cause) +
+      row('ในเทปเดิม สอนแบบนี้', i.before, 'o') + row('ควรปรับเป็นแบบนี้', i.after, 'n') + (i.remark ? row('หมายเหตุ', i.remark) : '') + '</tbody></table>';
+  }).join('');
+  return '<div class="doc">' + docHead('ข้อเสนอปรับปรุงเทป (เนื้อหา/วิธีการสอน)') +
+    '<div class="doc-info">' + info('ครูผู้เสนอ', p.teacher) + info('วิชา', subj) + info('โรงเรียนปลายทาง', p.destSchool) + info('สังกัด', p.affiliation || (plan && plan.affiliation)) + '</div>' +
+    (issues || '<div class="none">ยังไม่มีข้อเสนอ</div>') + sign(p.teacher, 'ครูผู้เสนอ') + '</div>';
 }
 function doPrint(html) {
   pkClose();
   $('#printArea').innerHTML = html;
   const imgs = $$('#printArea img');
   const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-  Promise.all([ready].concat(imgs.map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))))
-    .then(() => setTimeout(() => window.print(), 200));
-}
-
-function printPlan(p) {
-  const items = (p.items || []).filter(i => i.date || i.start || i.detail || i.subject || i.grade || i.period);
-  const teach = items.filter(i => i.type === 'เข้าสอน');
-  const target = (S.init && S.init.periodsPerWeek) || 8;
-  const cnt = k => teach.filter(i => i.pattern === k).length;
-  const days = {};
-  items.forEach(i => { (days[i.date || ''] = days[i.date || ''] || []).push(i); });
-  const order = Object.keys(days).sort((a, b) => (a || '9').localeCompare(b || '9'));
-  const dayHtml = order.map(k => {
-    const d = parseD(k);
-    const head = d ? '<b>' + d.getDate() + '</b><span>' + TH_M[d.getMonth()] + ' ' + String(d.getFullYear() + 543).slice(-2) + '</span><small>' + TH_DAY[d.getDay()] + '</small>'
-      : '<span style="padding:8px 0">ไม่ระบุวัน</span>';
-    const rows = days[k].sort((a, b) => (a.start || '').localeCompare(b.start || '')).map(i => {
-      const isT = i.type === 'เข้าสอน';
-      const title = isT ? 'เข้าสอน' + (i.subject ? 'วิชา' + esc(i.subject) : '') + (i.grade ? ' ' + esc(i.grade) : '') + (i.period ? ' · คาบที่ ' + esc(i.period) : '') : esc(i.type || 'กิจกรรม');
-      const sub = isT ? [i.task, i.detail].filter(Boolean).map(esc).join(' · ') : esc(i.detail || '');
-      const pill = isT && i.pattern ? '<span class="pill p' + i.pattern + '">รูปแบบที่ ' + i.pattern + ' · ' + PAT[i.pattern] + '</span>' : (isT ? '' : '<span class="pill g">' + esc(i.type || '') + '</span>');
-      return '<div class="rp-row ' + (isT ? (i.pattern ? 'p' + i.pattern : 't') : '') + '"><div class="tm">' + (esc(thShort(i.start, i.end)) || '—') + '</div><div class="w"><b>' + title + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>' + pill + '</div>';
-    }).join('');
-    return '<div class="rp-day"><div class="rp-date">' + head + '</div><div class="rp-rows">' + rows + '</div></div>';
-  }).join('');
-  const place = [p.destSchool, p.district ? 'อ.' + p.district : '', p.province ? 'จ.' + p.province : ''].filter(Boolean).join(' ');
-  const html = '<div class="rp">' + rpHead('แผนปฏิบัติงานรายบุคคล ' + target + ' คาบ/สัปดาห์', 'ครูต้นทาง') +
-    rpInfo([['ชื่อครู', p.teacher], ['โรงเรียนต้นทาง', p.originSchool, 'w2'], ['ห้วงเวลาปฏิบัติงาน', thRangeDates(p.startDate, p.endDate)],
-      ['วิชาที่สอน ณ ร.ร.ต้นทาง', p.originSubject], ['วิชาที่สอน ณ ร.ร.ปลายทาง', p.destSubject], ['โรงเรียนปลายทาง', place, 'w2'], ['สังกัด', p.affiliation, 'w4']]) +
-    '<div class="rp-sum"><div class="n"><b>' + teach.length + ' / ' + target + '</b><small>คาบสอน ณ โรงเรียนปลายทาง</small></div>' +
-    '<div class="p1"><b>' + cnt('1') + '</b><small>รูปแบบที่ 1</small></div><div class="p2"><b>' + cnt('2') + '</b><small>รูปแบบที่ 2</small></div>' +
-    '<div class="p3"><b>' + cnt('3') + '</b><small>รูปแบบที่ 3</small></div><div class="o"><b>' + order.filter(Boolean).length + '</b><small>วันปฏิบัติงาน</small></div></div>' +
-    '<div class="rp-sec"><h3>ตารางปฏิบัติงานรายวัน</h3></div>' +
-    (dayHtml || '<div class="rp-empty">ยังไม่มีรายการปฏิบัติงาน</div>') +
-    (p.note ? '<div class="rp-note"><b>หมายเหตุ:</b> ' + nl(p.note) + '</div>' : '') +
-    '<div class="rp-legend"><div class="p1"><b>รูปแบบที่ 1 · ดูความเข้าใจนักเรียน</b>เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนผ่านเทปออกอากาศหรือไม่</div>' +
-    '<div class="p2"><b>รูปแบบที่ 2 · ดูการกำกับห้องเรียน</b>เปิดเทปดูการกำกับห้องเรียนของครูปลายทาง</div>' +
-    '<div class="p3"><b>รูปแบบที่ 3 · สอนจริง</b>สอนจริง ณ โรงเรียนปลายทางกับนักเรียนจริง</div></div>' +
-    rpSign([p.teacher, 'ครูต้นทาง'], 'ผู้อนุมัติ') + rpFoot(p.id) + '</div>';
-  doPrint(html);
-}
-
-function printProp(p) {
-  const items = (p.items || []).filter(i => i.problem || i.cause || i.before || i.after || i.topic || i.tape || i.remark);
-  const cards = items.map((i, n) => {
-    const meta = [i.mode ? '<span class="pill y">' + esc(i.mode) + '</span>' : '', i.grade ? '<span class="pill g">' + esc(i.grade) + '</span>' : '',
-      (i.date || i.time) ? '<span class="pill g">' + esc([i.date ? thDate(i.date, 1) : '', i.time].filter(Boolean).join(' · ')) + '</span>' : '',
-      i.minute ? '<span class="pill p1">นาทีที่ ' + esc(i.minute) + '</span>' : ''].join(' ');
-    const blk = (lb, v, cls) => '<div class="' + (cls || '') + '"><div class="lb ' + (cls === 'r' ? 'r' : '') + '">' + lb + '</div>' + (v ? nl(v) : '<span style="color:#b8bfd6">—</span>') + '</div>';
-    return '<div class="rp-card"><div class="h"><div class="no">' + (n + 1) + '</div><b>' + (i.tape ? 'เทปที่ ' + esc(i.tape) : 'ไม่ระบุเทป') + (i.topic ? ' · ' + esc(i.topic) : '') + '</b><div class="sp"></div>' + meta + '</div>' +
-      '<div class="bd">' + blk('ปัญหาที่พบ', i.problem) + blk('สาเหตุของปัญหา', i.cause) +
-      '<div class="rp-ba"><div class="o"><div class="lb">เดิมเป็นอย่างไร</div>' + (i.before ? nl(i.before) : '—') + '</div><div class="a">➜</div>' +
-      '<div class="n"><div class="lb">ปรับใหม่ให้เป็นอย่างไร</div>' + (i.after ? nl(i.after) : '—') + '</div></div>' +
-      (i.remark ? '<div class="full" style="font-size:12px;color:#5b6385"><b>หมายเหตุ:</b> ' + nl(i.remark) + '</div>' : '') + '</div></div>';
-  }).join('');
-  const html = '<div class="rp">' + rpHead('ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”', 'การบ้านเพิ่มเติม · รายบุคคล') +
-    rpInfo([['ครูผู้สอน', p.teacher], ['วิชาที่สอน ณ โรงเรียนปลายทาง', p.destSubject], ['โรงเรียนปลายทาง', p.destSchool, 'w2'], ['สังกัด', p.affiliation, 'w4']]) +
-    '<div class="rp-guide"><span>ปรับตรงไหนของเทป?</span><em>→</em><span class="r">เดิมเป็นอย่างไร?</span><em>→</em><span class="n">ปรับใหม่ให้เป็นอย่างไร?</span><i>*** ข้อเสนอที่นำไปปฏิบัติได้จริง ***</i></div>' +
-    '<div class="rp-sec"><h3>ประเด็นข้อเสนอ (' + items.length + ')</h3></div>' +
-    (cards || '<div class="rp-empty">ยังไม่มีประเด็นข้อเสนอ</div>') +
-    '<div class="rp-sign one"><div><div class="ln"></div>(' + esc(p.teacher || '..................................................') + ')<br><small>ครูผู้เสนอ</small></div></div>' + rpFoot(p.id) + '</div>';
-  doPrint(html);
+  Promise.all([ready].concat(imgs.map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })))).then(() => setTimeout(() => window.print(), 200));
 }
 
 /* =========================================================
- *  Init
+ *  เริ่มระบบ
  * ========================================================= */
 function wire() {
-  wireList($('#planItems'), () => { refreshPlan(); draftPlan(); }, o => addPlanItem(o));
-  wireList($('#propItems'), () => { refreshProp(); draftProp(); }, o => addPropItem(o));
-  ['input', 'change'].forEach(ev => { $('#pg-plan').addEventListener(ev, draftPlan); $('#pg-proposal').addEventListener(ev, draftProp); });
-  $('#pg-plan').addEventListener('input', e => { if (e.target.id && e.target.id.startsWith('pl-')) { e.target.classList.remove('err'); refreshPlan(); } });
-  $('#pg-proposal').addEventListener('input', e => { if (e.target.id && e.target.id.startsWith('pr-')) { e.target.classList.remove('err'); refreshProp(); } });
-  $('#btnAddPlanItem').onclick = () => addPlanItem(null, true);
-  $('#btnAddPropItem').onclick = () => addPropItem(null, true);
-  $('#btnSortPlan').onclick = sortPlan;
-  $('#btnSavePlan').onclick = savePlan;
-  $('#btnSaveProp').onclick = saveProp;
-  $('#btnPrintPlan').onclick = () => printPlan(collectPlan());
-  $('#btnPrintProp').onclick = () => printProp(collectProp());
-  $('#btnNewPlan').onclick = async () => { if (await confirmBox('เริ่มแผนใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del(dk('planDraft')); newPlan(); } };
-  $('#btnNewProp').onclick = async () => { if (await confirmBox('เริ่มข้อเสนอใหม่?', 'ข้อมูลที่ยังไม่บันทึกในแบบฟอร์มจะหายไป', 'เริ่มใหม่')) { store.del(dk('propDraft')); newProp(); } };
-  $('#pr-planId').onchange = onPlanPick;
-  $('#btnImportPeriods').onclick = importPeriods;
-  $('#btnReload').onclick = loadRecords;
-  $('#q').oninput = renderRecords;
-  $('#kindSeg').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    $$('#kindSeg button').forEach(x => x.classList.toggle('on', x === b));
-    S.kind = b.dataset.v; renderRecords();
+  $('#pnGrades').innerHTML = GRADES.map(g => '<button type="button" data-v="' + g + '" aria-pressed="false">' + g + '</button>').join('');
+  $('#pnGrades').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setPanelGrade(b.dataset.v); });
+  $('#stepper').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) stepTo(+b.dataset.step); });
+  $('#st2').addEventListener('click', e => {
+    const s = e.target.closest('[data-step]'); if (s) return stepTo(+s.dataset.step);
+    const c = e.target.closest('.pc'); if (c) return editItem(+c.dataset.i);
+    const a = e.target.closest('[data-add]');
+    if (a) { clearPanel(); $('#pnDay').value = a.dataset.add; $('#pnStart').focus(); }
   });
+  $('#st1').addEventListener('input', () => { readPlanForm(); $$('#st1 .in.err').forEach(x => { if (getV(x)) x.classList.remove('err'); }); planChanged(); });
+  $('#st1').addEventListener('change', () => { readPlanForm(); planChanged(); });
+  $('#pnSave').onclick = savePanel;
+  $('#pnDel').onclick = deletePanelItem;
+  $('#pnCancel').onclick = () => clearPanel(true);
+  $('#pnMode').onclick = () => { setPanelMode(S.panelMode === 'teach' ? 'other' : 'teach'); renderPanel(); };
+  $('#btnBack').onclick = () => stepTo(Math.max(1, S.step - 1));
+  $('#btnNext').onclick = nextFromPlan;
+  $('#btnPrintPlan').onclick = async () => { await planSaver.now(); doPrint(planDoc(S.plan)); };
+  $('#prPlan').onchange = async e => { await propSaver.now(); if (e.target.value) openProposalForPlan(e.target.value); };
+  $('#periods').addEventListener('click', async e => {
+    if (e.target.closest('#goPlanFromProp')) return S.propPlan ? openPlan(S.propPlan.id, 2) : go('plan');
+    const b = e.target.closest('.per'); if (!b) return;
+    S.sel = b.dataset.key; renderProposal();
+  });
+  $('#qcard').addEventListener('input', onQuestionInput);
+  $('#btnNextPeriod').onclick = nextPeriod;
+  $('#btnPrintProp').onclick = async () => { await propSaver.now(); doPrint(propDoc(S.prop, S.propPlan)); };
+  $('#recList').addEventListener('click', onRecAction);
+  $('#q').addEventListener('input', renderRecList);
+  $('#btnNewWeek').onclick = async () => {
+    if (S.plan && !S.plan.id && (S.plan.items.length || S.plan.startDate) && !await confirmBox('เริ่มแผนใหม่?', 'แผนที่กำลังทำและยังไม่ได้บันทึกจะหายไป', 'เริ่มใหม่')) return;
+    store.del(dk('planDraft')); newPlan(); go('plan');
+  };
 }
+
 let started = false;
 function initials(n) { return (n || '?').replace(/^(คุณ|นางสาว|นาง|นาย|น\.ส\.|ครู|ดร\.)\s*/, '').trim().charAt(0) || '?'; }
 function renderUser() {
-  const name = (S.init && S.init.profile && S.init.profile.teacher) || AUTH.name || AUTH.email;
-  $('#userName').textContent = name;
-  $('#userEmail').textContent = AUTH.email;
-  const av = $('#userAvatar');
-  av.innerHTML = AUTH.picture ? '<img src="' + esc(AUTH.picture) + '" referrerpolicy="no-referrer" alt="">' : esc(initials(name));
+  const name = profile().teacher || AUTH.name || AUTH.email;
+  $('#userName').textContent = name || '—';
+  $('#userAvatar').innerHTML = AUTH.picture ? '<img src="' + esc(AUTH.picture) + '" referrerpolicy="no-referrer" alt="">' : esc(initials(name));
   $('#heroName').textContent = name ? 'คุณ' + name.replace(/^(คุณ|นางสาว|นาง|นาย|น\.ส\.)\s*/, '') : 'คุณครูต้นทาง';
   const ll = S.init && S.init.lastLogin;
-  $('#heroLast').textContent = ll ? 'เข้าใช้ครั้งก่อน ' + since(ll) + ' · เข้าใช้ทั้งหมด ' + S.init.loginCount + ' ครั้ง' : (S.init ? 'ยินดีต้อนรับสู่ระบบครั้งแรก' : '');
-  $('#heroLast').classList.toggle('hide', !$('#heroLast').textContent);
+  $('#heroLead').textContent = 'งานของคุณมี 2 ขั้นตอน ทำตามลำดับได้เลย' + (ll ? ' · เข้าใช้ครั้งก่อน ' + since(ll) : '');
+  $('#demoChip').classList.toggle('hide', MODE !== 'demo');
 }
 async function startApp() {
   if (started) return; started = true;
-  S.ready = false;
-  $('#demoChip').classList.toggle('hide', MODE !== 'demo');
+  S.ready = false; S.plan = null; S.prop = null; S.propPlan = null; S.records = [];
   renderUser();
-  go('home');
   loading(true);
   try {
     S.init = await api('getInit', { ua: navigator.userAgent });
     if (S.init.picture && !AUTH.picture) setAuth({ picture: S.init.picture });
-    $('#userRole').innerHTML = S.init.isAdmin ? '<span class="chip admin" style="margin-top:8px"><span class="ms" style="font-size:16px">shield_person</span>ผู้ดูแลระบบ</span>' : '';
-    $('#dlSchools').innerHTML = S.init.schools.map(s => '<option value="' + esc(s) + '">').join('');
-    $('#dlSubjects').innerHTML = S.init.subjects.map(s => '<option value="' + esc(s) + '">').join('');
+    $('#dlSchools').innerHTML = (S.init.schools || []).map(s => '<option value="' + esc(s) + '">').join('');
+    $('#dlSubjects').innerHTML = (S.init.subjects || []).map(s => '<option value="' + esc(s) + '">').join('');
     $('#dlAffiliations').innerHTML = (S.init.affiliations || []).map(s => '<option value="' + esc(s) + '">').join('');
-    $('#planOriginLbl').textContent = S.init.originSchool;
   } catch (e) { toast(errMsg(e), 'bad'); }
   finally { loading(false); }
-  // เติมฟอร์ม: แบบร่างของบัญชีนี้ (ถ้ามี) หรือข้อมูลตั้งต้นจากครั้งก่อน
-  const pd = store.get(dk('planDraft')), rd = store.get(dk('propDraft'));
-  pd ? fillPlan(pd) : newPlan();
-  rd ? fillProp(rd) : newProp();
-  if (pd) $('#planSaveInfo').textContent = 'กู้คืนแบบร่างที่ยังไม่บันทึก';
-  if (rd) $('#propSaveInfo').textContent = 'กู้คืนแบบร่างที่ยังไม่บันทึก';
+  const draft = store.get(dk('planDraft'));
+  if (draft && draft.items) { S.plan = normalizePlan(draft); S.step = 1; fillPlanForm(); planSaver.reset(); $('#planStatus').textContent = 'กู้คืนแผนที่ยังไม่ได้บันทึก'; }
   S.ready = true;
   renderUser();
+  go('home');
+  if (draft && draft.items && (draft.teacher && draft.destSchool)) planSaver.now();
 }
 function boot() {
   wire();
-  ['planDraft', 'propDraft', 'profile'].forEach(k => store.del(k));   // ล้างแบบร่างรุ่นเก่าที่ไม่แยกบัญชี
-  $('#btnLogout').onclick = $('#btnLogout2').onclick = async () => { if (await confirmBox('ออกจากระบบ?', 'แบบร่างที่ยังไม่บันทึกจะเก็บไว้ในเบราว์เซอร์นี้ เมื่อเข้าสู่ระบบครั้งหน้าจะกู้คืนให้', 'ออกจากระบบ')) logout(); };
+  ['planDraft', 'propDraft', 'profile'].forEach(k => store.del(k));
+  $('#btnLogout').onclick = async () => { if (await confirmBox('ออกจากระบบ?', 'งานที่บันทึกแล้วยังอยู่ครบ เข้าสู่ระบบครั้งหน้าจะเห็นเหมือนเดิม', 'ออกจากระบบ')) logout(); };
   $('#loginLite').onsubmit = e => {
     e.preventDefault();
     const a = { name: $('#lgName').value.trim(), email: $('#lgEmail').value.trim().toLowerCase() };
     setAuth(a); store.set('lite', a); hideLogin(); startApp();
   };
   $('#btnDemo').onclick = () => { setAuth({ name: 'ผู้ใช้ทดลอง', email: 'demo@dltv.local' }); hideLogin(); startApp(); };
-  if (restoreAuth()) startApp();
-  else if (MODE === 'google' && AUTH.email) { showLogin(); }      // token หมดอายุ: One Tap จะเข้าสู่ระบบให้อัตโนมัติ
-  else showLogin();
+  if (restoreAuth()) startApp(); else showLogin();
 }
 boot();

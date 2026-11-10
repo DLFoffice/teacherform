@@ -3,392 +3,285 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบบันทึกงานครูต้นทาง DLTV</title>
+  <title>บันทึกงานครูต้นทาง DLTV</title>
   <link rel="icon" href="assets/img/favicon.png">
   <meta name="theme-color" content="#2B3990">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0..1,0" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Prompt:wght@500;600&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body>
-<div class="app">
-  <!-- ================= Sidebar ================= -->
-  <aside class="side">
-    <div class="brand">
-      <div class="seal"><img class="logo-fdn" src="assets/img/logo-foundation.png" alt="มูลนิธิการศึกษาทางไกลผ่านดาวเทียม"></div>
-      <div>
-        <b>ครูต้นทาง DLTV</b>
-        <small>ระบบบันทึกแผนปฏิบัติงาน<br>และข้อเสนอการปรับปรุงการสอน</small>
-      </div>
-    </div>
-    <nav class="nav" id="sideNav">
-      <div class="lbl">เมนูหลัก</div>
-      <button data-go="home"><span class="ms">space_dashboard</span>ภาพรวม</button>
-      <button data-go="plan"><span class="ms">event_note</span>แผนปฏิบัติงาน 8 คาบ</button>
-      <button data-go="proposal"><span class="ms">tips_and_updates</span>ข้อเสนอปรับปรุงการสอน</button>
-      <button data-go="records"><span class="ms">folder_open</span>รายการที่บันทึก</button>
-      <div class="lbl">ข้อมูล</div>
-      <button data-go="guide"><span class="ms">menu_book</span>คำชี้แจง / รูปแบบงาน</button>
+
+<!-- ไอคอน (ใช้ซ้ำทั้งระบบ) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></symbol>
+  <symbol id="i-school" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M6 14h12v7H6z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+</svg>
+
+<!-- ================= แถบด้านบน ================= -->
+<header class="top">
+  <div class="top-in">
+    <img class="lg1" src="assets/img/logo-foundation.png" alt="มูลนิธิการศึกษาทางไกลผ่านดาวเทียม ในพระบรมราชูปถัมภ์">
+    <img class="lg2" src="assets/img/logo-dltv.png" alt="DLTV">
+    <div class="brand">บันทึกงานครูต้นทาง</div>
+    <span class="chip demo hide" id="demoChip">โหมดทดลอง</span>
+    <nav class="nav" aria-label="เมนูหลัก">
+      <button type="button" data-go="home">หน้าแรก</button>
+      <button type="button" data-go="plan">แผน 8 คาบ</button>
+      <button type="button" data-go="proposal">ข้อเสนอปรับปรุงเทป</button>
     </nav>
-    <div class="foot">
-      <div class="me">
-        <div class="avatar" id="userAvatar">?</div>
-        <div style="min-width:0"><b id="userName">—</b><small id="userEmail"></small></div>
-      </div>
-      <span id="userRole"></span>
-      <button class="btn lite sm" id="btnLogout" style="margin-top:10px;width:100%"><span class="ms">logout</span>ออกจากระบบ</button>
+    <div class="me">
+      <div class="avatar" id="userAvatar">?</div>
+      <div class="who"><b id="userName">—</b><button type="button" class="linkbtn" id="btnLogout">ออกจากระบบ</button></div>
     </div>
-  </aside>
+  </div>
+</header>
 
-  <!-- ================= Main ================= -->
-  <main class="main">
-    <header class="top">
-      <div class="mlogo" style="display:none;align-items:center;gap:8px">
-        <img class="logo-fdn" src="assets/img/logo-foundation.png" style="height:38px">
-        <img src="assets/img/logo-dltv.png" class="logo-dltv" style="height:30px">
+<main class="wrap">
+
+  <!-- ================= หน้าแรก ================= -->
+  <section class="page" id="pg-home">
+    <h1 class="h1">สวัสดีครับ <span id="heroName">คุณครูต้นทาง</span></h1>
+    <p class="lead" id="heroLead">งานของคุณมี 2 ขั้นตอน ทำตามลำดับได้เลย</p>
+
+    <div class="steps">
+      <section class="step s1">
+        <div class="hd">
+          <div class="num">1</div>
+          <div><div class="k">ขั้นที่ 1 · ก่อนไปโรงเรียนปลายทาง</div><h2>วางแผนการสอน 8 คาบ</h2></div>
+        </div>
+        <p>บอกว่าจะไปสอนวันไหน เวลาไหน ชั้นอะไร และจะทำอะไรในคาบนั้น</p>
+        <div>
+          <div class="prog"><span>เลือกคาบสอนแล้ว</span><b id="h1Count">0 จาก 8 คาบ</b></div>
+          <div class="bar"><i id="h1Bar" style="width:0"></i></div>
+          <div class="hint" id="h1Hint">ยังไม่ได้เริ่มวางแผน</div>
+        </div>
+        <button type="button" class="btn pri big" id="h1Btn">เริ่มวางแผน <svg class="ico"><use href="#i-arrow"/></svg></button>
+      </section>
+
+      <section class="step s2">
+        <div class="hd">
+          <div class="num">2</div>
+          <div><div class="k">ขั้นที่ 2 · หลังสอนเสร็จแต่ละคาบ</div><h2>เขียนข้อเสนอปรับปรุงเทป</h2></div>
+        </div>
+        <p>เทปตอนไหนที่นักเรียนไม่เข้าใจ และควรปรับให้เป็นอย่างไร</p>
+        <div>
+          <div class="prog"><span>เขียนข้อเสนอแล้ว</span><b id="h2Count">0 จาก 0 คาบที่สอน</b></div>
+          <div class="bar"><i id="h2Bar" style="width:0"></i></div>
+          <div class="hint" id="h2Hint">วางแผนขั้นที่ 1 ก่อน</div>
+        </div>
+        <button type="button" class="btn gold big" id="h2Btn">เขียนข้อเสนอ <svg class="ico"><use href="#i-arrow"/></svg></button>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:28px">
+      <div class="list-h">
+        <h2>งานที่บันทึกไว้</h2>
+        <input class="in hide" id="q" placeholder="ค้นหาชื่อครูหรือโรงเรียน" style="max-width:280px">
+        <button type="button" class="btn line sm" id="btnNewWeek"><svg class="ico"><use href="#i-plus"/></svg>สร้างแผนสัปดาห์ใหม่</button>
       </div>
-      <div>
-        <div class="crumb">โครงการจัดการเรียนรู้ด้วยการศึกษาทางไกลผ่านดาวเทียม (DLTV) ร่วมกับโรงเรียนปลายทาง</div>
-        <h1 id="pageTitle">ภาพรวม</h1>
+      <div id="recList"><div class="empty">กำลังโหลด…</div></div>
+    </section>
+  </section>
+
+  <!-- ================= แผน 8 คาบ ================= -->
+  <section class="page" id="pg-plan">
+    <h1 class="h1" style="margin-bottom:18px">วางแผนการสอน 8 คาบ</h1>
+    <ol class="stepper" id="stepper">
+      <li><button type="button" data-step="1"><span class="n">1</span><span><b>ข้อมูลโรงเรียน</b><small></small></span></button></li>
+      <li><button type="button" data-step="2"><span class="n">2</span><span><b>เลือกคาบสอน</b><small></small></span></button></li>
+      <li><button type="button" data-step="3"><span class="n">3</span><span><b>ตรวจและพิมพ์</b><small></small></span></button></li>
+    </ol>
+
+    <!-- ขั้นที่ 1 -->
+    <div id="st1">
+      <section class="card">
+        <h2>ครูต้นทาง</h2>
+        <div class="grid3">
+          <label class="field">ชื่อ-นามสกุล <span class="req" aria-hidden="true">*</span><input class="in" id="pl-teacher" placeholder="เช่น นางสาวคณิตา หนุนอนันต์"></label>
+          <label class="field">โรงเรียนต้นทาง<input class="in" id="pl-originSchool"></label>
+          <label class="field">วิชาที่สอนที่โรงเรียนต้นทาง<input class="in" id="pl-originSubject" list="dlSubjects" placeholder="เช่น ภาษาไทย ป.5"></label>
+        </div>
+      </section>
+      <section class="card">
+        <h2>โรงเรียนปลายทางที่จะไป</h2>
+        <div class="grid2">
+          <label class="field">ชื่อโรงเรียน <span class="req" aria-hidden="true">*</span><input class="in" id="pl-destSchool" list="dlSchools" placeholder="เช่น โรงเรียนบ้านหนองหญ้าปล้อง"></label>
+          <label class="field">สังกัด<input class="in" id="pl-affiliation" list="dlAffiliations" placeholder="เช่น สพป.ประจวบคีรีขันธ์ เขต 2"></label>
+          <label class="field">อำเภอ<input class="in" id="pl-district" placeholder="เช่น บางสะพาน"></label>
+          <label class="field">จังหวัด<input class="in" id="pl-province" placeholder="เช่น ประจวบคีรีขันธ์"></label>
+          <label class="field span2">วิชาที่จะไปสอน<input class="in" id="pl-destSubject" placeholder="เช่น ภาษาไทย ป.5–6 (ชั้นละ 4/5 คาบต่อสัปดาห์)"></label>
+          <label class="field">ไปตั้งแต่วันที่ <span class="req" aria-hidden="true">*</span><input class="in thdate" readonly id="pl-startDate" placeholder="เลือกวันที่"></label>
+          <label class="field">ถึงวันที่ <span class="req" aria-hidden="true">*</span><input class="in thdate" readonly id="pl-endDate" placeholder="เลือกวันที่"></label>
+          <label class="field span2">หมายเหตุ <small>(ถ้ามี)</small><textarea class="in" id="pl-note" rows="2" placeholder="เช่น ผู้ประสานงาน การเดินทาง"></textarea></label>
+        </div>
+      </section>
+    </div>
+
+    <!-- ขั้นที่ 2 -->
+    <div id="st2" class="hide">
+      <div class="strip">
+        <svg class="ico"><use href="#i-school"/></svg>
+        <span id="planStrip"></span>
+        <button type="button" class="btn ghost sm" data-step="1" style="margin-left:auto">แก้ไข</button>
       </div>
-      <div class="sp"></div>
-      <span class="chip demo hide" id="demoChip"><span class="ms" style="font-size:16px">science</span>โหมดทดลอง</span>
-      <button class="ibtn mlogout" id="btnLogout2" title="ออกจากระบบ"><span class="ms">logout</span></button>
-      <img src="assets/img/logo-dltv.png" class="logo-dltv dlr" style="height:36px" alt="DLTV">
-    </header>
-
-    <div class="content">
-
-      <!-- ========== HOME ========== -->
-      <section class="page" id="pg-home">
-        <div class="hero">
-          <div class="txt">
-            <h2>สวัสดีครับ <span id="heroName">คุณครูต้นทาง</span> 👋</h2>
-            <div class="hero-last hide" id="heroLast"></div>
-            <p>บันทึกแผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์ ณ โรงเรียนปลายทาง และเสนอการปรับปรุง “เนื้อหา/วิธีการสอน” ของเทปแต่ละเทป ได้ในที่เดียว</p>
-            <div class="cta">
-              <button class="btn gold" data-go="plan"><span class="ms">add_circle</span>สร้างแผนปฏิบัติงาน</button>
-              <button class="btn lite" data-go="proposal"><span class="ms">edit_note</span>เขียนข้อเสนอปรับปรุง</button>
-            </div>
-          </div>
-          <div class="logos">
-            <div class="pill"><img class="logo-fdn" src="assets/img/logo-foundation.png" alt=""></div>
-            <div class="pill"><img src="assets/img/logo-dltv.png" class="logo-dltv" alt=""></div>
-          </div>
-          <div class="stripe"></div>
-        </div>
-
-        <div class="grid g4" id="stats">
-          <div class="card stat a"><div class="ic"><span class="ms fill">event_note</span></div><div class="v" id="st-plans">–</div><div class="k">แผนปฏิบัติงาน</div></div>
-          <div class="card stat b"><div class="ic"><span class="ms fill">school</span></div><div class="v" id="st-periods">–</div><div class="k">คาบสอน ณ โรงเรียนปลายทาง</div></div>
-          <div class="card stat c"><div class="ic"><span class="ms fill">tips_and_updates</span></div><div class="v" id="st-items">–</div><div class="k">ประเด็นข้อเสนอปรับปรุง</div></div>
-          <div class="card stat d"><div class="ic"><span class="ms fill">domain</span></div><div class="v" id="st-schools">–</div><div class="k">โรงเรียนปลายทาง</div></div>
-        </div>
-
-        <div class="grid g2" style="margin-top:18px">
-          <div class="card band c-navy">
-            <div class="card-h"><div class="ic"><span class="ms">history</span></div><div><h3>บันทึกล่าสุด</h3><p>รายการที่แก้ไขล่าสุด 6 รายการ</p></div><div class="sp"></div><button class="btn ghost sm" data-go="records">ดูทั้งหมด</button></div>
-            <div id="recentList"><div class="skel" style="margin:10px 0"></div><div class="skel" style="width:70%"></div></div>
-          </div>
-          <div class="card band c-purple">
-            <div class="card-h"><div class="ic"><span class="ms">category</span></div><div><h3>รูปแบบงานที่ครูต้นทางปฏิบัติ ณ โรงเรียนปลายทาง</h3></div></div>
-            <div class="legend">
-              <div class="lg"><div class="dot" style="background:var(--p1)">1</div><div><b>รูปแบบที่ 1</b><span>เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนของตนผ่านเทปออกอากาศหรือไม่</span></div></div>
-              <div class="lg"><div class="dot" style="background:var(--p2)">2</div><div><b>รูปแบบที่ 2</b><span>เปิดเทปดูการกำกับห้องเรียนของครู</span></div></div>
-              <div class="lg"><div class="dot" style="background:var(--p3)">3</div><div><b>รูปแบบที่ 3</b><span>สอนจริง ณ โรงเรียนปลายทางกับลูกค้าจริง</span></div></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ========== PLAN ========== -->
-      <section class="page" id="pg-plan">
-        <div class="card band c-navy">
-          <div class="card-h">
-            <div class="ic"><span class="ms">badge</span></div>
-            <div><h3>1 · ข้อมูลครูต้นทาง</h3><p id="planOriginLbl">โรงเรียนวังไกลกังวล ในพระบรมราชูปถัมภ์</p></div>
-            <div class="sp"></div>
-            <span class="badge plan" id="planIdBadge">แผนใหม่</span>
-          </div>
-          <div class="fg">
-            <div class="f s4"><label>ชื่อครู <span class="req">*</span></label><input class="in" id="pl-teacher" placeholder="เช่น นางสาวคณิตา หนุนอนันต์"></div>
-            <div class="f s4"><label>โรงเรียนต้นทาง</label><input class="in" id="pl-originSchool"></div>
-            <div class="f s4"><label>วิชาที่สอน ณ โรงเรียนต้นทาง</label><input class="in" id="pl-originSubject" placeholder="เช่น ภาษาไทย ป.5" list="dlSubjects"></div>
-          </div>
-        </div>
-
-        <div class="card band c-gold">
-          <div class="card-h">
-            <div class="ic"><span class="ms">school</span></div>
-            <div><h3>2 · โรงเรียนปลายทางและห้วงเวลาปฏิบัติงาน</h3><p>โรงเรียนที่ไปปฏิบัติงาน สังกัด และช่วงวันที่</p></div>
-          </div>
-          <div class="fg">
-            <div class="f s6"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pl-destSchool" placeholder="เช่น โรงเรียนบ้านหนองหญ้าปล้อง" list="dlSchools"></div>
-            <div class="f s6"><label>สังกัด</label><input class="in" id="pl-affiliation" placeholder="เช่น สพป.ประจวบคีรีขันธ์ เขต 2" list="dlAffiliations"></div>
-            <div class="f s3 half"><label>อำเภอ</label><input class="in" id="pl-district" placeholder="เช่น บางสะพาน"></div>
-            <div class="f s3 half"><label>จังหวัด</label><input class="in" id="pl-province" placeholder="เช่น ประจวบคีรีขันธ์"></div>
-            <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pl-destSubject" placeholder="เช่น ภาษาไทย (ป.5-6 ชั้นละ 4/5 คาบ/สัปดาห์)"></div>
-            <div class="f s3 half"><label>ปฏิบัติงานตั้งแต่วันที่</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-startDate"></div>
-            <div class="f s3 half"><label>ถึงวันที่</label><input class="in thdate" readonly placeholder="เลือกวันที่" id="pl-endDate"></div>
-          </div>
-        </div>
-
-        <div class="card band c-green">
-          <div class="card-h">
-            <div class="ic"><span class="ms">calendar_month</span></div>
-            <div><h3>3 · ตารางปฏิบัติงานรายวัน</h3><p>ระบุวัน เวลา คาบที่ และรูปแบบงานให้ครบ 8 คาบ/สัปดาห์</p></div>
-            <div class="sp"></div>
-            <button class="btn ghost sm" id="btnSortPlan" title="เรียงตามวันและเวลา"><span class="ms">sort</span>เรียงตามเวลา</button>
-            <div class="ring" id="planRing"><div><span><b id="planCount">0</b><small>/8 คาบ</small></span></div></div>
-          </div>
-          <div class="items" id="planItems"></div>
-          <button class="btn dash" id="btnAddPlanItem"><span class="ms">add</span>เพิ่มรายการปฏิบัติงาน</button>
-        </div>
-
-        <div class="card band c-slate">
-          <div class="card-h">
-            <div class="ic"><span class="ms">sticky_note_2</span></div>
-            <div><h3>4 · หมายเหตุเพิ่มเติม</h3><p>(ถ้ามี)</p></div>
-          </div>
-          <textarea class="in" id="pl-note" placeholder="เช่น ข้อมูลการเดินทาง ผู้ประสานงาน ฯลฯ"></textarea>
-        </div>
-
-        <div class="sticky-actions">
-          <div class="info"><span class="ms">cloud_done</span><span id="planSaveInfo">ยังไม่ได้บันทึก</span></div>
-          <button class="btn ghost" id="btnNewPlan"><span class="ms">note_add</span><span class="t">เริ่มใหม่</span></button>
-          <button class="btn ghost" id="btnPrintPlan"><span class="ms">print</span><span class="t">พิมพ์ / PDF</span></button>
-          <button class="btn pri" id="btnSavePlan"><span class="ms">save</span>บันทึกแผน</button>
-        </div>
-      </section>
-
-      <!-- ========== PROPOSAL ========== -->
-      <section class="page" id="pg-proposal">
-        <div class="note" style="margin-bottom:18px">
-          <span class="ms">lightbulb</span>
-          <div>
-            <h4>ผลที่ต้องการ: ข้อเสนอการปรับปรุง “เนื้อหา/วิธีสอน” ในวิชาที่ตนเองรับผิดชอบ (รายบุคคล)</h4>
-            <p>“ปรับตรงไหน? ของเทปแต่ละเทป” — “เดิมเป็น<span class="q">อย่างไร</span>? ปรับใหม่ให้เป็น<span class="q">อย่างไร</span>?”<br><b style="color:#2f5fc2">*** เป็นข้อเสนอที่นำไปปฏิบัติได้จริง ***</b></p>
-          </div>
-        </div>
-
-        <div class="card band c-navy">
-          <div class="card-h">
-            <div class="ic"><span class="ms">person_edit</span></div>
-            <div><h3>1 · ข้อมูลครูและโรงเรียนปลายทาง</h3><p>ข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน” · การบ้านเพิ่มเติม : รายบุคคล</p></div>
-            <div class="sp"></div>
-            <span class="badge prop" id="propIdBadge">ข้อเสนอใหม่</span>
-          </div>
-          <div class="fg">
-            <div class="f s12"><label>อ้างอิงแผนปฏิบัติงาน <span class="hint">(ไม่บังคับ – เลือกแล้วระบบจะเติมข้อมูลให้)</span></label>
-              <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <select class="in" id="pr-planId" style="flex:1;min-width:220px"><option value="">— ไม่อ้างอิงแผน —</option></select>
-                <button class="btn ghost" id="btnImportPeriods"><span class="ms">download</span>ดึงคาบสอนจากแผน</button>
-              </div>
-            </div>
-            <div class="f s6"><label>ชื่อครูผู้สอน <span class="req">*</span></label><input class="in" id="pr-teacher"></div>
-            <div class="f s6"><label>วิชาที่สอน ณ โรงเรียนปลายทาง</label><input class="in" id="pr-destSubject" list="dlSubjects"></div>
-            <div class="f s6"><label>โรงเรียนปลายทาง <span class="req">*</span></label><input class="in" id="pr-destSchool" list="dlSchools"></div>
-            <div class="f s6"><label>สังกัด</label><input class="in" id="pr-affiliation" placeholder="เช่น สพป.ประจวบคีรีขันธ์ เขต 2" list="dlAffiliations"></div>
-          </div>
-        </div>
-
-        <div class="card band c-gold">
-          <div class="card-h">
-            <div class="ic"><span class="ms">video_library</span></div>
-            <div><h3>2 · ประเด็นปัญหาและข้อเสนอ (รายเทป)</h3><p>ปรับตรงไหน · เดิมเป็นอย่างไร · ปรับใหม่ให้เป็นอย่างไร</p></div>
-            <div class="sp"></div>
-            <span class="badge prop" id="propCount">0 รายการ</span>
-          </div>
-          <div class="items" id="propItems"></div>
-          <button class="btn dash" id="btnAddPropItem"><span class="ms">add</span>เพิ่มประเด็นข้อเสนอ</button>
-        </div>
-
-        <div class="sticky-actions">
-          <div class="info"><span class="ms">cloud_done</span><span id="propSaveInfo">ยังไม่ได้บันทึก</span></div>
-          <button class="btn ghost" id="btnNewProp"><span class="ms">note_add</span><span class="t">เริ่มใหม่</span></button>
-          <button class="btn ghost" id="btnPrintProp"><span class="ms">print</span><span class="t">พิมพ์ / PDF</span></button>
-          <button class="btn pri" id="btnSaveProp"><span class="ms">send</span>บันทึกข้อเสนอ</button>
-        </div>
-      </section>
-
-      <!-- ========== RECORDS ========== -->
-      <section class="page" id="pg-records">
-        <div class="card">
-          <div class="toolbar">
-            <div class="search"><span class="ms">search</span><input class="in" id="q" placeholder="ค้นหาชื่อครู โรงเรียน วิชา…"></div>
-            <div class="seg" id="kindSeg">
-              <button data-v="" class="on">ทั้งหมด</button>
-              <button data-v="plan">แผนปฏิบัติงาน</button>
-              <button data-v="proposal">ข้อเสนอ</button>
-            </div>
-            <button class="btn ghost" id="btnReload"><span class="ms">refresh</span>รีเฟรช</button>
-          </div>
-          <div style="overflow-x:auto">
-            <table class="tbl">
-              <thead><tr><th>ประเภท</th><th>ครู</th><th>โรงเรียนปลายทาง / วิชา</th><th>รายละเอียด</th><th>ความครบถ้วน</th><th>แก้ไขล่าสุด</th><th></th></tr></thead>
-              <tbody id="recBody"></tbody>
-            </table>
-          </div>
-          <div class="empty hide" id="recEmpty"><span class="ms">inbox</span>ยังไม่มีรายการ</div>
-        </div>
-      </section>
-
-      <!-- ========== GUIDE ========== -->
-      <section class="page" id="pg-guide">
-        <div class="grid g2">
-          <div class="card band c-navy">
-            <div class="card-h"><div class="ic"><span class="ms">event_note</span></div><div><h3>แผนปฏิบัติงานรายบุคคล 8 คาบ/สัปดาห์</h3></div></div>
-            <ol style="margin:0;padding-left:20px;line-height:2">
-              <li>กรอกชื่อครู วิชาที่สอนทั้งที่โรงเรียนต้นทางและปลายทาง</li>
-              <li>ระบุโรงเรียนปลายทาง สังกัด อำเภอ/จังหวัด และห้วงเวลาปฏิบัติงาน</li>
-              <li>เพิ่มรายการรายวัน: วันที่ เวลา ชั้น คาบที่ ลักษณะงาน และรูปแบบที่ 1–3</li>
-              <li>ระบบนับคาบ “เข้าสอน” ให้อัตโนมัติ เป้าหมาย 8 คาบ/สัปดาห์</li>
-              <li>กด “พิมพ์ / PDF” เพื่อได้เอกสารสรุปพร้อมช่องลงชื่อ</li>
-            </ol>
-          </div>
-          <div class="card band c-gold">
-            <div class="card-h"><div class="ic"><span class="ms">tips_and_updates</span></div><div><h3>ข้อเสนอการปรับปรุงเนื้อหา/วิธีการสอน</h3></div></div>
-            <ol style="margin:0;padding-left:20px;line-height:2">
-              <li>วัน/เวลาที่สอน และระดับชั้น</li>
-              <li>เปิดเทป/สอนสด — ตรงกับเทปที่? เรื่องที่สอน?</li>
-              <li>ปัญหาที่พบของ “เนื้อหา/วิธีสอนของครูต้นทาง” ที่ทำให้นักเรียนไม่เข้าใจ</li>
-              <li>สาเหตุของปัญหา (ทั้งจากครูและนักเรียน)</li>
-              <li>ข้อเสนอ: เดิมเป็นอย่างไร → ปรับใหม่ให้เป็นอย่างไร และปรับ ณ นาทีที่เท่าไรในเทป</li>
-            </ol>
-          </div>
-        </div>
-        <div class="card band c-purple">
-          <div class="card-h"><div class="ic"><span class="ms">category</span></div><div><h3>หมายเหตุ: งานที่ครูต้นทางปฏิบัติ ณ โรงเรียนปลายทาง</h3></div></div>
+      <div class="plan2">
+        <section class="card wk">
+          <div class="wk-h"><h2>ตารางการไปสอน</h2><span class="cnt"><b id="wkCount">0</b> จาก 8 คาบ</span></div>
+          <div class="bar" id="wkBar"><i style="width:0"></i></div>
+          <div class="days"><div class="days-in" id="days"></div></div>
           <div class="legend">
-            <div class="lg"><div class="dot" style="background:var(--p1)">1</div><div><b>รูปแบบที่ 1</b><span>เปิดเทปดูว่านักเรียนปลายทางเข้าใจเนื้อหาการสอนของตนผ่านเทปออกอากาศหรือไม่</span></div></div>
-            <div class="lg"><div class="dot" style="background:var(--p2)">2</div><div><b>รูปแบบที่ 2</b><span>เปิดเทปดูการกำกับห้องเรียนของครู</span></div></div>
-            <div class="lg"><div class="dot" style="background:var(--p3)">3</div><div><b>รูปแบบที่ 3</b><span>สอนจริง ณ โรงเรียนปลายทางกับลูกค้าจริง</span></div></div>
+            <span><i style="background:var(--p1)"></i>แบบที่ 1 ดูว่านักเรียนเข้าใจเทปไหม</span>
+            <span><i style="background:var(--p2)"></i>แบบที่ 2 ดูครูปลายทางคุมชั้นเรียน</span>
+            <span><i style="background:var(--p3)"></i>แบบที่ 3 สอนเองจริง</span>
           </div>
+        </section>
+
+        <section class="panel" id="panel" aria-labelledby="pnTitle">
+          <div class="ph"><h2 id="pnTitle">เพิ่มคาบสอน</h2><button type="button" class="btn danger sm hide" id="pnDel"><svg class="ico"><use href="#i-trash"/></svg>ลบ</button></div>
+          <label class="field">วันไหน<select class="in" id="pnDay"></select></label>
+          <div class="grid2">
+            <label class="field">เริ่ม<input class="in thtime" id="pnStart" inputmode="decimal" autocomplete="off" placeholder="--.--"></label>
+            <label class="field">ถึง<input class="in thtime" id="pnEnd" inputmode="decimal" autocomplete="off" placeholder="--.--"></label>
+          </div>
+          <div id="pnTeach" style="display:flex;flex-direction:column;gap:16px">
+            <fieldset style="border:0;padding:0;margin:0">
+              <legend class="field" style="margin-bottom:6px">ชั้นไหน</legend>
+              <div class="chips" id="pnGrades"></div>
+            </fieldset>
+            <label class="field">วิชา<input class="in" id="pnSubject" list="dlSubjects" placeholder="เช่น ภาษาไทย"></label>
+            <fieldset style="border:0;padding:0;margin:0">
+              <legend class="field" style="margin-bottom:6px">ไปทำอะไรในคาบนี้</legend>
+              <div class="pats">
+                <label class="pat p1"><input type="radio" name="pnPat" value="1"><span><b>แบบที่ 1 · ดูว่านักเรียนเข้าใจเทปไหม</b><span>เปิดเทปของเรา แล้วสังเกตนักเรียน</span></span></label>
+                <label class="pat p2"><input type="radio" name="pnPat" value="2"><span><b>แบบที่ 2 · ดูครูปลายทางคุมชั้นเรียน</b><span>เปิดเทป แล้วสังเกตการกำกับห้องเรียน</span></span></label>
+                <label class="pat p3"><input type="radio" name="pnPat" value="3"><span><b>แบบที่ 3 · สอนเองจริง</b><span>สอนนักเรียนปลายทางด้วยตนเอง</span></span></label>
+              </div>
+            </fieldset>
+          </div>
+          <div id="pnOther" class="hide" style="display:flex;flex-direction:column;gap:16px">
+            <label class="field">เป็นกิจกรรมอะไร<select class="in" id="pnType"><option>เดินทาง</option><option>ประชุม/พูดคุย</option><option>อื่น ๆ</option></select></label>
+            <label class="field">รายละเอียด<input class="in" id="pnDetail" placeholder="เช่น เดินทางไปโรงเรียนปลายทาง"></label>
+          </div>
+          <div class="acts">
+            <button type="button" class="btn line hide" id="pnCancel">ยกเลิก</button>
+            <button type="button" class="btn pri big" id="pnSave">เพิ่มลงตาราง</button>
+          </div>
+          <button type="button" class="alt" id="pnMode">+ เพิ่มการเดินทาง / ประชุม (ไม่นับเป็นคาบสอน)</button>
+        </section>
+      </div>
+    </div>
+
+    <!-- ขั้นที่ 3 -->
+    <div id="st3" class="hide">
+      <div class="checks" id="checks"></div>
+      <div class="paper-wrap"><div id="planPreview"></div></div>
+    </div>
+
+    <div class="footbar">
+      <button type="button" class="btn ghost" id="btnBack"><svg class="ico"><use href="#i-back"/></svg>ย้อนกลับ</button>
+      <span class="st"><i class="dot" id="planDot"></i><span id="planStatus">ยังไม่ได้บันทึก</span></span>
+      <button type="button" class="btn line hide" id="btnPrintPlan"><svg class="ico"><use href="#i-print"/></svg>พิมพ์ / PDF</button>
+      <button type="button" class="btn pri big" id="btnNext">ถัดไป <svg class="ico"><use href="#i-arrow"/></svg></button>
+    </div>
+  </section>
+
+  <!-- ================= ข้อเสนอปรับปรุงเทป ================= -->
+  <section class="page" id="pg-proposal">
+    <h1 class="h1">เขียนข้อเสนอปรับปรุงเทป</h1>
+    <p class="lead">หลังสอนเสร็จ เขียนสั้น ๆ ทีละคาบ ว่าเทปตอนไหนที่นักเรียนไม่เข้าใจ และควรปรับอย่างไร</p>
+
+    <div id="prNoPlan" class="card hide">
+      <div class="empty" style="padding:20px">
+        <p style="font-size:17px;margin:0 0 16px">ยังไม่มีแผนการสอน ต้องวางแผน 8 คาบก่อน จึงจะเลือกคาบมาเขียนข้อเสนอได้</p>
+        <button type="button" class="btn pri big" data-go="plan">ไปวางแผนการสอน <svg class="ico"><use href="#i-arrow"/></svg></button>
+      </div>
+    </div>
+
+    <div id="prMain">
+      <section class="card">
+        <div class="list-h">
+          <h2 style="margin:0">1. เลือกคาบที่สอนแล้ว</h2>
+          <label class="field" style="flex-direction:row;align-items:center;gap:8px;font-weight:500;white-space:nowrap">แผนสัปดาห์<select class="in" id="prPlan" style="min-width:240px"></select></label>
         </div>
+        <div class="periods" id="periods" style="margin-top:12px"></div>
       </section>
 
+      <section class="qcard" id="qcard">
+        <div class="qh"><h2>2. ตอบ 4 คำถาม</h2><span id="qMeta"></span></div>
+        <div class="qb">
+          <div>
+            <div class="q"><span class="qn">1</span>เป็นเทปไหน ตรงนาทีที่เท่าไร</div>
+            <div class="q1">
+              <label class="field">เทปที่<input class="in" data-q="tape" placeholder="เช่น 45"></label>
+              <label class="field">นาทีที่<input class="in" data-q="minute" placeholder="เช่น 12.30"></label>
+              <label class="field span2">เรื่องที่สอน<input class="in" data-q="topic" placeholder="ชื่อเรื่อง/หน่วยการเรียนรู้"></label>
+            </div>
+          </div>
+          <div class="grid2">
+            <label class="field"><span class="q"><span class="qn">2</span>นักเรียนไม่เข้าใจตรงไหน</span><textarea class="in" rows="3" data-q="problem" placeholder="เช่น นักเรียนตามขั้นตอนในเทปไม่ทัน"></textarea></label>
+            <label class="field"><span class="q"><span class="qn">3</span>เพราะอะไร</span><textarea class="in" rows="3" data-q="cause" placeholder="เช่น ครูในเทปพูดเร็ว ไม่มีภาพประกอบ"></textarea></label>
+          </div>
+          <div>
+            <div class="q"><span class="qn">4</span>ควรปรับอย่างไร</div>
+            <div class="ba">
+              <label class="o"><b>ในเทปเดิม สอนแบบนี้</b><textarea class="in" rows="3" data-q="before" placeholder="เนื้อหา/วิธีสอนเดิมในเทป"></textarea></label>
+              <div class="arr"><svg class="ico"><use href="#i-arrow"/></svg></div>
+              <label class="n"><b>ควรปรับเป็นแบบนี้</b><textarea class="in" rows="3" data-q="after" placeholder="ปรับอย่างไรให้นักเรียนเข้าใจมากขึ้น"></textarea></label>
+            </div>
+          </div>
+        </div>
+        <div class="qf">
+          <span class="st"><i class="dot" id="propDot"></i><span id="propStatus">ยังไม่ได้บันทึก</span></span>
+          <button type="button" class="btn line" id="btnPrintProp"><svg class="ico"><use href="#i-print"/></svg>พิมพ์ / PDF</button>
+          <button type="button" class="btn pri big" id="btnNextPeriod">บันทึก แล้วไปคาบถัดไป <svg class="ico"><use href="#i-arrow"/></svg></button>
+        </div>
+      </section>
     </div>
-  </main>
-</div>
-
-<!-- Mobile bottom nav -->
-<nav class="bnav" id="bNav">
-  <button data-go="home"><span class="ms">space_dashboard</span>ภาพรวม</button>
-  <button data-go="plan"><span class="ms">event_note</span>แผนงาน</button>
-  <button data-go="proposal"><span class="ms">tips_and_updates</span>ข้อเสนอ</button>
-  <button data-go="records"><span class="ms">folder_open</span>รายการ</button>
-  <button data-go="guide"><span class="ms">menu_book</span>คำชี้แจง</button>
-</nav>
+  </section>
+</main>
 
 <datalist id="dlSchools"></datalist>
 <datalist id="dlSubjects"></datalist>
 <datalist id="dlAffiliations"></datalist>
 
-<!-- Templates -->
-<template id="tplPlanItem">
-  <div class="item">
-    <div class="item-h">
-      <div class="num">1</div>
-      <div><div class="t">รายการ</div><div class="sub"></div></div>
-      <div class="sp"></div>
-      <button class="ibtn" data-act="up" title="เลื่อนขึ้น"><span class="ms">arrow_upward</span></button>
-      <button class="ibtn" data-act="dup" title="ทำสำเนา"><span class="ms">content_copy</span></button>
-      <button class="ibtn del" data-act="del" title="ลบ"><span class="ms">delete</span></button>
-    </div>
-    <div class="fg">
-      <div class="f s3 half"><label>วันที่</label><input class="in thdate" readonly placeholder="เลือกวันที่" data-k="date"></div>
-      <div class="f s2 half"><label>เวลาเริ่ม</label><input class="in thtime" inputmode="decimal" placeholder="--.--" autocomplete="off" data-k="start"></div>
-      <div class="f s2 half"><label>เวลาสิ้นสุด</label><input class="in thtime" inputmode="decimal" placeholder="--.--" autocomplete="off" data-k="end"></div>
-      <div class="f s5"><label>ประเภทกิจกรรม</label>
-        <div class="seg" data-k="type">
-          <button data-v="เข้าสอน">เข้าสอน</button><button data-v="เดินทาง">เดินทาง</button><button data-v="ประชุม/พูดคุย">ประชุม/พูดคุย</button><button data-v="อื่น ๆ">อื่น ๆ</button>
-        </div>
-      </div>
-      <div class="teach-only">
-        <div class="f s3 half"><label>วิชา</label><input class="in" data-k="subject" list="dlSubjects" placeholder="ภาษาไทย"></div>
-        <div class="f s2 half"><label>ชั้น</label>
-          <select class="in" data-k="grade"><option value="">–</option><option>อ.1</option><option>อ.2</option><option>อ.3</option><option>ป.1</option><option>ป.2</option><option>ป.3</option><option>ป.4</option><option>ป.5</option><option>ป.6</option><option>ม.1</option><option>ม.2</option><option>ม.3</option><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></div>
-        <div class="f s2 half"><label>คาบที่</label>
-          <select class="in" data-k="period"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
-        <div class="f s5"><label>ลักษณะงาน</label>
-          <select class="in" data-k="task"><option value="">— เลือก —</option><option>สอนเปิดเทปสังเกตนักเรียน</option><option>สอนเปิดเทปสังเกตการกำกับห้องเรียน</option><option>สอนจริง</option></select></div>
-        <div class="f s12"><label>รูปแบบงาน</label>
-          <div class="seg pat" data-k="pattern">
-            <button data-v="1">รูปแบบที่ 1 · ดูความเข้าใจนักเรียน</button><button data-v="2">รูปแบบที่ 2 · ดูการกำกับห้องเรียน</button><button data-v="3">รูปแบบที่ 3 · สอนจริง</button>
-          </div>
-        </div>
-      </div>
-      <div class="f s12"><label>รายละเอียด <span class="hint">(เช่น เดินทางไปยังโรงเรียน…, นัดพูดคุยเตรียมการสอน…)</span></label><input class="in" data-k="detail"></div>
-    </div>
-  </div>
-</template>
-
-<template id="tplPropItem">
-  <div class="item t-teach">
-    <div class="item-h">
-      <div class="num">1</div>
-      <div><div class="t">ประเด็นข้อเสนอ</div><div class="sub"></div></div>
-      <div class="sp"></div>
-      <button class="ibtn" data-act="up" title="เลื่อนขึ้น"><span class="ms">arrow_upward</span></button>
-      <button class="ibtn" data-act="dup" title="ทำสำเนา"><span class="ms">content_copy</span></button>
-      <button class="ibtn del" data-act="del" title="ลบ"><span class="ms">delete</span></button>
-    </div>
-    <div class="fg">
-      <div class="f s3 half"><label>วันที่สอน</label><input class="in thdate" readonly placeholder="เลือกวันที่" data-k="date"></div>
-      <div class="f s3 half"><label>เวลาที่สอน</label><input class="in" data-k="time" placeholder="08.30–09.30 น."></div>
-      <div class="f s2 half"><label>ระดับชั้น</label>
-        <select class="in" data-k="grade"><option value="">–</option><option>อ.1</option><option>อ.2</option><option>อ.3</option><option>ป.1</option><option>ป.2</option><option>ป.3</option><option>ป.4</option><option>ป.5</option><option>ป.6</option><option>ม.1</option><option>ม.2</option><option>ม.3</option><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></div>
-      <div class="f s4"><label>การสอน</label>
-        <div class="seg" data-k="mode"><button data-v="เปิดเทป">เปิดเทป</button><button data-v="สอนสด">สอนสด</button></div>
-      </div>
-      <div class="f s3 half"><label>ตรงกับเทปที่ ?</label><input class="in" data-k="tape" placeholder="เช่น 45"></div>
-      <div class="f s6"><label>เรื่องที่สอน ?</label><input class="in" data-k="topic" placeholder="ชื่อเรื่อง/หน่วยการเรียนรู้"></div>
-      <div class="f s3 half"><label>ปรับ ณ นาทีที่ ? ในเทป</label><input class="in" data-k="minute" placeholder="เช่น 12:30"></div>
-      <div class="f s6"><label style="color:#c81e1e">ปัญหาที่พบ <span class="hint">ของ “เนื้อหา/วิธีสอนของครูต้นทาง” ที่ทำให้ นร. ไม่เข้าใจ</span></label><textarea class="in" data-k="problem"></textarea></div>
-      <div class="f s6"><label style="color:#c81e1e">สาเหตุของปัญหา <span class="hint">(ทั้งจากครู และทั้งจาก นร.)</span></label><textarea class="in" data-k="cause"></textarea></div>
-      <div class="ba">
-        <div class="box old"><label>เดิมเป็นอย่างไร ?</label><textarea class="in" data-k="before" placeholder="เนื้อหา/วิธีการสอนเดิมในเทป"></textarea></div>
-        <div class="arrow"><span class="ms fill">double_arrow</span></div>
-        <div class="box new"><label>ปรับใหม่ให้เป็นอย่างไร ? <span class="hint" style="font-weight:400">(ปรับเพื่อให้ นร. เข้าใจเนื้อหาการสอนมากขึ้น)</span></label><textarea class="in" data-k="after" placeholder="ข้อเสนอ “เนื้อหา/วิธีการสอน” ที่ปรับใหม่"></textarea></div>
-      </div>
-      <div class="f s12"><label>หมายเหตุ</label><input class="in" data-k="remark"></div>
-    </div>
-  </div>
-</template>
-
-<!-- ================= Login ================= -->
+<!-- ================= เข้าสู่ระบบ ================= -->
 <div class="login" id="login">
   <div class="login-card">
     <div class="login-logos">
       <img src="assets/img/logo-foundation.png" alt="มูลนิธิการศึกษาทางไกลผ่านดาวเทียม ในพระบรมราชูปถัมภ์">
       <img src="assets/img/logo-dltv.png" alt="DLTV">
     </div>
-    <h2>ระบบบันทึกงานครูต้นทาง</h2>
-    <p>แผนปฏิบัติงานรายบุคคล และข้อเสนอการปรับปรุง “เนื้อหา/วิธีการสอน”<br>โครงการ DLTV ร่วมกับโรงเรียนปลายทาง</p>
+    <h2>บันทึกงานครูต้นทาง</h2>
+    <p>วางแผนการสอน 8 คาบ และเขียนข้อเสนอปรับปรุงเทป<br>โครงการ DLTV ร่วมกับโรงเรียนปลายทาง</p>
     <div id="loginGoogle" class="hide">
       <div id="gBtn" style="display:flex;justify-content:center;min-height:44px"></div>
       <small class="login-hint">ใช้บัญชี Google ของหน่วยงานในการเข้าสู่ระบบ</small>
     </div>
-    <form id="loginLite" class="hide">
-      <div class="f s12"><label>ชื่อ-นามสกุล</label><input class="in" id="lgName" required placeholder="เช่น นางสาวคณิตา หนุนอนันต์"></div>
-      <div class="f s12"><label>อีเมล</label><input class="in" id="lgEmail" type="email" required placeholder="name@dltv.ac.th"></div>
-      <button class="btn pri" style="width:100%" type="submit"><span class="ms">login</span>เข้าสู่ระบบ</button>
+    <form id="loginLite" class="hide" style="display:flex;flex-direction:column;gap:12px">
+      <label class="field">ชื่อ-นามสกุล<input class="in" id="lgName" required placeholder="เช่น นางสาวคณิตา หนุนอนันต์"></label>
+      <label class="field">อีเมล<input class="in" id="lgEmail" type="email" required placeholder="name@dltv.ac.th"></label>
+      <button class="btn pri big" type="submit">เข้าสู่ระบบ</button>
     </form>
     <div id="loginDemo" class="hide">
-      <button class="btn gold" style="width:100%" id="btnDemo"><span class="ms">play_circle</span>เข้าใช้งานโหมดทดลอง</button>
+      <button type="button" class="btn gold big" style="width:100%" id="btnDemo">เข้าใช้งานโหมดทดลอง</button>
       <small class="login-hint">ยังไม่ได้ตั้งค่า API_URL – ข้อมูลจะเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</small>
     </div>
   </div>
   <div class="login-foot">มูลนิธิการศึกษาทางไกลผ่านดาวเทียม ในพระบรมราชูปถัมภ์</div>
 </div>
 
-<!-- Overlays -->
-<div class="ovl" id="ovl"><div class="modal"><h3 id="mTitle"></h3><p id="mText"></p><div class="row"><button class="btn ghost" id="mNo">ยกเลิก</button><button class="btn pri" id="mYes">ยืนยัน</button></div></div></div>
-<div class="loader" id="loader"><div class="spin"></div></div>
-<div class="toasts" id="toasts"></div>
 <div class="picker" id="picker"></div>
+<div class="ovl" id="ovl"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle"><h3 id="mTitle"></h3><p id="mText"></p><div class="row2"><button type="button" class="btn line" id="mNo">ยกเลิก</button><button type="button" class="btn pri" id="mYes">ยืนยัน</button></div></div></div>
+<div class="loader" id="loader"><div class="spin"></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="printArea"></div>
 
 <script src="assets/js/config.js"></script>
